@@ -19,6 +19,9 @@ import pyautogui
 import os
 from PIL import Image
 import time
+from PyQt5.QtCore import pyqtSignal
+import subprocess
+import sys
 
 
 def _screenshot(capture_region: tuple, filename: str, index: int):
@@ -26,19 +29,30 @@ def _screenshot(capture_region: tuple, filename: str, index: int):
     pyautogui.screenshot(region=capture_region).save(filename + '_' + str(index).zfill(4) + '.png')
 
 
-def _getFileListAtPath(path: str, ext: str = None) -> list:
+def _getFileListAtPath(path: str, ext: str = "") -> list:
     """특정 경로의 파일 리스트를 반환한다."""
-    if ext is None:
+    if ext == "":
         filelist = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     else:
         filelist = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.endswith(ext)]
     return sorted(filelist, key=lambda x: x)
 
 
+def _open_directory(path):
+    print("_open_directory start")
+    if sys.platform == "win32":  # Windows
+        os.startfile(path)
+    elif sys.platform == "darwin":  # macOS
+        subprocess.call(['open', path])
+    else:  # Linux 및 기타
+        subprocess.call(['xdg-open', path])
+    print("_open_directory end")
+
 def auto_pdf_capture(file_name: str, page_loop: int,
-                     x1: int, y1: int, x2:int, y2: int,
+                     x1: int, y1: int, x2: int, y2: int,
                      margin: int = 0, diff_width: int = 0,
-                     res: int = 1, automation_delay: float = 0.2 ) -> bool:
+                     res: int = 1, automation_delay: float = 0.2,
+                     log_message_signal: pyqtSignal | None = None) -> bool:
     """
     자동으로 화면을 캡쳐한뒤 pdf를 생성한다.
 
@@ -59,9 +73,15 @@ def auto_pdf_capture(file_name: str, page_loop: int,
              pillow 버전업되면서(? 확실친 않음) 무조건 1로 해야 한다.
         automation_delay: 자동화 딜레이 시간(초) 설정. 페이지 로딩할 시간을 일정시간(초) 부여 해준다.
                           (가끔 로딩이 완료 되지 않은 상태에서 캡쳐가 되면 글자가 뭉개지기 때문.)
+        log_message_signal: 로그 메시지를 전달할 신호
     Returns:
         bool: 성공여부
     """
+    def show_log(log_message: str):
+        if log_message_signal and isinstance(log_message_signal, pyqtSignal):
+            log_message_signal.emit(log_message)  # type: ignore
+        print(log_message)
+
     x1 -= margin
     y1 -= margin
     x2 += margin
@@ -71,28 +91,28 @@ def auto_pdf_capture(file_name: str, page_loop: int,
     y = y1  # 캡쳐 시작좌표 y
     width = x2 - x1  # 캡쳐할 영역의 너비
     height = y2 - y1  # 캡쳐할 영역의 높이
-    # capture_region_first_page = ((x + int(diff_width/2)) * res, y * res, (width - diff_width) * res, height * res)
     capture_region_first_page = (x * res, y * res, width * res, height * res)
     capture_region_left_page = (x * res, y * res, (width - diff_width) * res, height * res)
     capture_region_right_page = ((x + diff_width) * res, y * res, (width - diff_width) * res, height * res)
     dir_name = f'./__{file_name}'
     # --------------------------------------------------------------------------------
 
-    print(f'전체화면 {pyautogui.size()}')
-    print(f'x = {x}')
-    print(f'y = {y}')
-    print(f'width = {width}')
-    print(f'height = {height}')
-    print(f'capture_region_first_page = {capture_region_first_page}')
-    print(f'capture_region_left_page = {capture_region_left_page}')
-    print(f'capture_region_right_page = {capture_region_right_page}')
+    show_log(f'전체화면 {pyautogui.size()}')
+    show_log(f'x = {x}')
+    show_log(f'y = {y}')
+    show_log(f'width = {width}')
+    show_log(f'height = {height}')
+    show_log(f'capture_region_first_page = {capture_region_first_page}')
+    show_log(f'capture_region_left_page = {capture_region_left_page}')
+    show_log(f'capture_region_right_page = {capture_region_right_page}')
 
-    print("\n\n준비하세요.. 5초뒤 시작합니다.\n")
-    pyautogui.countdown(5)  # 5초 카운트다운
-    # pyautogui.move(100, 0)
-    # pyautogui.moveTo(0, 0, duration=1)  # 화면 좌측 상단으로 이동
-    # pyautogui.move(-100, 0, duration=1)  # 사실상 좌측 확장 모니터로 이동하게 된다.
-    # pyautogui.moveTo(100, 100, duration=1)
+    show_log("\n캡쳐 대상으로 포커스를 이동하세요...\n5초뒤 시작합니다.\n")
+
+    # 카운트 다운
+    tmp_seconds = 5
+    for i in range(tmp_seconds, 0, -1):
+        show_log(str(i))
+        time.sleep(1)
 
     # 생성 디렉터리 체크
     if not os.path.exists(dir_name):
@@ -107,7 +127,7 @@ def auto_pdf_capture(file_name: str, page_loop: int,
 
     # 첫 페이지 캡쳐
     capture_region = capture_region_first_page
-    print(f'\n캡쳐 1 - {capture_region}')
+    show_log(f'\n캡쳐 1 - {capture_region}')
     _screenshot(capture_region, file_name, 1)
     pyautogui.press("right")
     time.sleep(automation_delay)
@@ -115,32 +135,28 @@ def auto_pdf_capture(file_name: str, page_loop: int,
     # 페이지 수 까지 반복 캡쳐 수행
     for i in range(2, page_loop + 1):
         capture_region = capture_region_left_page if i % 2 == 1 else capture_region_right_page
-        print(f'캡쳐 {i} - {capture_region}')
+        show_log(f'캡쳐 {i} - {capture_region}')
         _screenshot(capture_region, file_name, i)
-        # pyautogui.keyDown("right")
-        # pyautogui.keyUp("right")
         pyautogui.press("right")
         pyautogui.sleep(automation_delay)  # 페이지 로딩할 시간을 일정시간(초) 부여 해준다. (가끔 로딩이 완료 되지 않은 상태에서 캡쳐가 되면 글자가 뭉개지기 때문.)
 
     # --------------------------------------------------------------------
     # 캡쳐 이미지를 pdf 파일로 변환
     # --------------------------------------------------------------------
-    print("\n캡쳐완료. pdf 취합중...\n")
+    show_log("\n캡쳐완료. pdf 취합중...")
     # 이미지 파일 리스트를 가져온다.
     imagepaths = _getFileListAtPath(path='./', ext='png')
 
-    image_list = []
-    image_main = None
-    for i, image in enumerate(imagepaths):
-        if i == 0:
-            image_main = Image.open(image).convert('RGB')
-        else:
-            image_list.append(Image.open(image).convert('RGB'))
+    images = [Image.open(image).convert('RGB') for image in imagepaths]
+    images[0].save(f'{file_name}.pdf', save_all=True, append_images=images[1:])
 
-    image_main.save(f'{file_name}.pdf', save_all=True, append_images=image_list)
+    show_log("pdf 취합완료.")
 
-    print('-----------------------------------------------------------')
-    print(f'총 소요시간: {time.time() - start_time:.2f}초')
+    # PDF 파일 생성 후 폴더 열기
+    _open_directory("./")
+
+    show_log('-----------------------------------------------------------')
+    show_log(f'총 소요시간: {time.time() - start_time:.2f}초')
     # --------------------------------------------------------------------
 
     return True

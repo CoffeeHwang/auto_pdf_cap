@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget, 
-                           QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit)
+                           QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget)
 from PyQt5.QtCore import Qt, QRect, QPoint, QSettings, QTimer, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QPainter, QPen, QColor, QCursor
 import sys
 from auto_pdf_capture import *
-
+from supa_common import *
 
 class ModalessWindow(QWidget):
     def __init__(self, parent=None):

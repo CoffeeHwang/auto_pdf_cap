@@ -19,9 +19,10 @@ import pyautogui
 import os
 from PIL import Image
 import time
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
 import subprocess
 import sys
+from supa_common import *
 
 
 def _screenshot(capture_region: tuple, filename: str, index: int):
@@ -52,7 +53,7 @@ def auto_pdf_capture(file_name: str, page_loop: int,
                      x1: int, y1: int, x2: int, y2: int,
                      margin: int = 0, diff_width: int = 0,
                      res: int = 1, automation_delay: float = 0.2,
-                     log_message_signal: pyqtSignal | None = None) -> bool:
+                     log_message_signal: pyqtSignal | pyqtBoundSignal | None = None) -> bool:
     """
     자동으로 화면을 캡쳐한뒤 pdf를 생성한다.
 
@@ -78,8 +79,8 @@ def auto_pdf_capture(file_name: str, page_loop: int,
         bool: 성공여부
     """
     def show_log(log_message: str):
-        if log_message_signal and isinstance(log_message_signal, pyqtSignal):
-            log_message_signal.emit(log_message)  # type: ignore
+        if log_message_signal:
+            log_message_signal.emit(log_message) # type: ignore
         print(log_message)
 
     x1 -= margin

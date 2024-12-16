@@ -18,6 +18,14 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
+
+        # QTabWidget 추가
+        self.tab_widget = QTabWidget(self)
+        layout.addWidget(self.tab_widget)  # 기존 레이아웃에 탭 위젯 추가
+
+        # 첫 번째 탭: 기본 설정
+        basic_tab = QWidget()
+        basic_layout = QVBoxLayout(basic_tab)
         
         # 투명도 슬라이더
         slider_layout = QHBoxLayout()
@@ -29,17 +37,17 @@ class MainWindow(QMainWindow):
         
         slider_layout.addWidget(self.opacity_label)
         slider_layout.addWidget(self.opacity_slider)
-        layout.addLayout(slider_layout)
+        basic_layout.addLayout(slider_layout)
 
         # 모달리스 창 보이기/숨기기 토글 버튼
         self.toggle_modaless_button = QPushButton('캡쳐영역 가이드', self)
         self.toggle_modaless_button.clicked.connect(self.toggle_modaless)
-        layout.addWidget(self.toggle_modaless_button)
+        basic_layout.addWidget(self.toggle_modaless_button)
         
         clear_button = QPushButton('캡쳐영역 재설정', self)
         clear_button.clicked.connect(self.clear_rectangles)
-        layout.addWidget(clear_button)        
-        layout.addSpacing(15)
+        basic_layout.addWidget(clear_button)        
+        basic_layout.addSpacing(15)
 
         # 파라미터 그룹
         param_group = QGroupBox("기타 설정값")
@@ -132,10 +140,10 @@ class MainWindow(QMainWindow):
         coord_group.setLayout(coord_layout)
         
         # 메인 레이아웃에 그룹 추가
-        layout.addWidget(coord_group)
-        layout.addSpacing(10)
-        layout.addWidget(param_group)
-        layout.addSpacing(10)
+        basic_layout.addWidget(coord_group)
+        basic_layout.addSpacing(10)
+        basic_layout.addWidget(param_group)
+        basic_layout.addSpacing(10)
         
         # file_name LineEdit
         file_name_layout = QVBoxLayout()
@@ -150,15 +158,24 @@ class MainWindow(QMainWindow):
         start_button.clicked.connect(self.start_process)  # 시작 버튼 클릭 시 호출할 함수
 
         # 레이아웃에 추가
-        layout.addLayout(file_name_layout)
-        layout.addLayout(page_loop_layout)
-        layout.addWidget(start_button)
+        basic_layout.addLayout(file_name_layout)
+        basic_layout.addLayout(page_loop_layout)
+        basic_layout.addWidget(start_button)
 
         # 로그 표시를 위한 QTextEdit 추가
         self.log_text_edit = QTextEdit(self)
         self.log_text_edit.setReadOnly(True)  # 읽기 전용 설정
         self.log_text_edit.setFixedHeight(200)  # 고정 높이 설정
-        layout.addWidget(self.log_text_edit)  # 레이아웃에 추가
+        basic_layout.addWidget(self.log_text_edit)  # 레이아웃에 추가
+
+        # 첫 번째 탭에 추가
+        self.tab_widget.addTab(basic_tab, "캡쳐자동화")
+
+        # 두 번째 탭: 추가 설정 (예시)
+        additional_tab = QWidget()
+        additional_layout = QVBoxLayout(additional_tab)
+        # 추가 설정 내용 추가
+        self.tab_widget.addTab(additional_tab, "개요OCR추출")
 
         self.setWindowTitle('메인 창')
         self.setGeometry(100, 100, 500, 400)
@@ -190,7 +207,7 @@ class MainWindow(QMainWindow):
         self.opacity_slider.setValue(opacity)
         self.opacity_label.setText(f'투명도: {opacity}%')
         
-        # 모달리스 창 설정 불러오기
+        # 모달리스 창 설정 불���오기
         if self.modaless_window:
             # 창 위치/크기 복원
             modaless_geometry = self.settings.value('ModalessWindow/geometry')

@@ -37,9 +37,9 @@ class ModalessWindow(QWidget):
             painter.drawRect(self.rectangle)
             
             # Margin이 설정된 경우 녹색 사각형 그리기
-            if self.main_window and self.main_window.margin_edit.text():
+            if self.main_window and self.main_window.basic_tab.margin_edit.text():
                 try:
-                    margin = int(self.main_window.margin_edit.text())
+                    margin = int(self.main_window.basic_tab.margin_edit.text())
                     if margin > 0:
                         painter.setPen(QPen(QColor(0, 255, 0), 1))
                         margin_rect = QRect(
@@ -53,9 +53,9 @@ class ModalessWindow(QWidget):
                     pass  # 숫자가 아닌 값이 입력된 경우 무시
             
             # Diff Width가 설정된 경우 수직 점선 그리기
-            if self.main_window and self.main_window.diff_width_edit.text():
+            if self.main_window and self.main_window.basic_tab.diff_width_edit.text():
                 try:
-                    diff_width = int(self.main_window.diff_width_edit.text())
+                    diff_width = int(self.main_window.basic_tab.diff_width_edit.text())
                     if diff_width > 0:
                         # 점선 스타일 설정
                         pen = QPen(QColor(255, 255, 255), 1)  # 흰색, 1픽 두께
@@ -146,10 +146,10 @@ class ModalessWindow(QWidget):
                 if temp_rect.width() >= self.min_size and temp_rect.height() >= self.min_size:
                     absolute_rect = self.get_absolute_coordinates(temp_rect)
                     if self.main_window and absolute_rect is not None:
-                        self.main_window.x1_spin.setValue(absolute_rect.left())
-                        self.main_window.y1_spin.setValue(absolute_rect.top())
-                        self.main_window.x2_spin.setValue(absolute_rect.right())
-                        self.main_window.y2_spin.setValue(absolute_rect.bottom())
+                        self.main_window.basic_tab.x1_spin.setValue(absolute_rect.left())
+                        self.main_window.basic_tab.y1_spin.setValue(absolute_rect.top())
+                        self.main_window.basic_tab.x2_spin.setValue(absolute_rect.right())
+                        self.main_window.basic_tab.y2_spin.setValue(absolute_rect.bottom())
             self.update()
         elif self.is_moving and self.rectangle and self.rect_start: # type: ignore
             delta = event.pos() - self.drag_start_pos
@@ -255,24 +255,24 @@ class ModalessWindow(QWidget):
             absolute_rect = self.get_absolute_coordinates(self.rectangle)
             if absolute_rect: # type: ignore
                 # SpinBox 업데이트
-                self.main_window.x1_spin.blockSignals(True)
-                self.main_window.y1_spin.blockSignals(True)
-                self.main_window.x2_spin.blockSignals(True)
-                self.main_window.y2_spin.blockSignals(True)
+                self.main_window.basic_tab.x1_spin.blockSignals(True)
+                self.main_window.basic_tab.y1_spin.blockSignals(True)
+                self.main_window.basic_tab.x2_spin.blockSignals(True)
+                self.main_window.basic_tab.y2_spin.blockSignals(True)
                 
                 try:
                     # 뷰포트 기준 좌표 업데이트
-                    self.main_window.x1_spin.setValue(absolute_rect.left())
-                    self.main_window.y1_spin.setValue(absolute_rect.top())
-                    self.main_window.x2_spin.setValue(absolute_rect.right())
-                    self.main_window.y2_spin.setValue(absolute_rect.bottom())
+                    self.main_window.basic_tab.x1_spin.setValue(absolute_rect.left())
+                    self.main_window.basic_tab.y1_spin.setValue(absolute_rect.top())
+                    self.main_window.basic_tab.x2_spin.setValue(absolute_rect.right())
+                    self.main_window.basic_tab.y2_spin.setValue(absolute_rect.bottom())
                     
                 finally:
                     # 모든 시그널 언블록
-                    self.main_window.x1_spin.blockSignals(False)
-                    self.main_window.y1_spin.blockSignals(False)
-                    self.main_window.x2_spin.blockSignals(False)
-                    self.main_window.y2_spin.blockSignals(False)
+                    self.main_window.basic_tab.x1_spin.blockSignals(False)
+                    self.main_window.basic_tab.y1_spin.blockSignals(False)
+                    self.main_window.basic_tab.x2_spin.blockSignals(False)
+                    self.main_window.basic_tab.y2_spin.blockSignals(False)
 
     def get_absolute_coordinates(self, rect):
         if not rect:

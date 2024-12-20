@@ -22,8 +22,6 @@ class ModalessWindow(QWidget):
         self.main_window = parent
         self.min_size = 100
         
-        print(self.parent(), " ||| ", self.main_window)
-        
     def initUI(self):
         self.setWindowTitle('캡쳐영역 가이드')
         self.setMouseTracking(True)

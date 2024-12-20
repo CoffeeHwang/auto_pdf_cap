@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget, 
-                           QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget)
+                           QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget,
+                           QMenuBar, QMenu, QAction)
 from PyQt5.QtCore import Qt, QRect, QPoint, QSettings, QThread
 from modaless_window import ModalessWindow
 from worker_cap import WorkerCapture
 from basic_tab import BasicTab
 from ocr_tab import OcrTab
+from settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -16,6 +18,9 @@ class MainWindow(QMainWindow):
         self.loadSettings()   # 설정 불러오기
         
     def initUI(self):
+        # 메뉴바 생성
+        self.create_menu_bar()
+        
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
@@ -236,3 +241,21 @@ class MainWindow(QMainWindow):
         self.thread.finished.connect(self.thread.deleteLater)
 
         self.thread.start()
+
+    def create_menu_bar(self):
+        """메뉴바 생성 및 설정"""
+        menubar = self.menuBar()
+        
+        # 파일 메뉴
+        file_menu = menubar.addMenu('파일')
+        
+        # 환경설정 메뉴 항목
+        settings_action = QAction('환경설정...', self)
+        settings_action.setShortcut('Ctrl+,')  # macOS 스타일 단축키
+        settings_action.triggered.connect(self.show_settings)
+        file_menu.addAction(settings_action)
+        
+    def show_settings(self):
+        """환경설정 창을 표시"""
+        dialog = SettingsDialog(self)
+        dialog.exec_()

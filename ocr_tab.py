@@ -1,7 +1,9 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
-                           QListWidgetItem, QDialog, QDesktopWidget)
+                           QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox, QTextEdit)
 from PyQt5.QtCore import Qt, QSettings, QPoint
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QFont, QFontDatabase
+import os
+from outline_ocr import run_ocr
 
 class ImagePreviewDialog(QDialog):
     def __init__(self, image_path, parent=None):
@@ -179,6 +181,7 @@ class OcrTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_window = parent
+        self.settings = QSettings('Coffee.Hwang', 'AutoPdfCap')
         self.setup_ui()
 
     def setup_ui(self):
@@ -190,4 +193,61 @@ class OcrTab(QWidget):
         
         # 이미지 리스트 위젯 추가
         self.image_list = ImageListWidget(self)
+        self.image_list.model().rowsInserted.connect(self.update_scan_button)
+        self.image_list.model().rowsRemoved.connect(self.update_scan_button)
         layout.addWidget(self.image_list)
+        
+        # OCR 스캔 버튼 추가
+        self.scan_button = QPushButton("OCR 스캔")
+        self.scan_button.clicked.connect(self.on_scan_button_clicked)
+        self.scan_button.setEnabled(False)  # 초기 상태는 비활성화
+        layout.addWidget(self.scan_button)
+        
+        # OCR 결과 표시를 위한 QTextEdit 추가
+        self.result_text = QTextEdit()
+        self.result_text.setReadOnly(False)  # 편집 가능하도록 설정
+        self.result_text.setPlaceholderText("OCR 결과가 여기에 표시됩니다.")
+        
+        # D2Coding 폰트 로드 및 설정
+        font_path = os.path.join(os.path.dirname(__file__), 'fonts', 'D2Coding.ttf')
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+        font = QFont(font_family, 12)
+        self.result_text.setFont(font)
+        
+        layout.addWidget(self.result_text)
+        
+    def update_scan_button(self):
+        """이미지 리스트의 상태에 따라 스캔 버튼 활성화/비활성화"""
+        self.scan_button.setEnabled(self.image_list.count() > 0)
+
+    def on_scan_button_clicked(self):
+        """OCR 스캔 버튼 클릭 시 실행되는 임시 메서드"""
+        image_files = [self.image_list.item(i) for i in range(self.image_list.count())]
+            
+        # 파일 경로 리스트 생성
+        file_paths = []
+        for item in image_files:
+            file_path = item.data(Qt.UserRole)  # 아이템에 저장된 파일 경로
+            print(f"파일 경로: {file_path}")
+            file_paths.append(file_path)
+
+        secret_key = self.settings.value('ocr/secret_key', '')
+        api_url = self.settings.value('ocr/api_url', '')
+        if secret_key and api_url:
+            # OCR 실행 전에 결과창 초기화
+            self.result_text.clear()
+            self.result_text.setPlaceholderText("OCR 처리 중...")
+            
+            ocr_lines: list = run_ocr(secret_key, api_url, file_paths)
+            
+            # OCR 결과 표시
+            if ocr_lines:
+                self.result_text.setPlainText("\n".join(ocr_lines))
+            else:
+                self.result_text.setPlainText("OCR 결과가 없습니다.")
+        else:
+            print("OCR 설정이 없습니다. 환경설정에서 설정하세요.")
+            QMessageBox.warning(self, "경고", 
+                              "OCR 설정이 필요합니다.\n\n"
+                              "파일 메뉴 → 환경설정에서 Secret Key와 API URL을 설정해주세요.")

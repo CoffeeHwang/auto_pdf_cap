@@ -56,21 +56,15 @@ class ImagePreviewDialog(QDialog):
         size = self.geometry()
         return (screen.width() - size.width()) // 2, (screen.height() - size.height()) // 2
         
-    def is_valid_position(self, pos):
-        # 위치가 화면 내에 있는지 확인
-        screen = QDesktopWidget().screenGeometry()
-        return (0 <= pos.x() <= screen.width() - self.width() and 
-                0 <= pos.y() <= screen.height() - self.height())
-        
     def position_window(self):
         # 저장된 위치 불러오기
         pos = self.settings.value('preview_window_pos')
         
-        if pos and self.is_valid_position(pos):
-            # 저장된 위치가 있고 유효하면 해당 위치로 이동
+        if pos:
+            # 저장된 위치가 있으면 해당 위치로 이동
             self.move(pos)
         else:
-            # 저장된 위치가 없거나 유효하지 않으면 화면 중앙으로 이동
+            # 저장된 위치가 없으면 화면 중앙으로 이동
             x, y = self.get_center_position()
             self.move(x, y)
             

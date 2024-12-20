@@ -12,7 +12,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings('MyCompany', 'RectangleApp')  # 설정 객체 생성
         self.modaless_window = None
         self.initUI()
-        self.show_modaless()  # 시작 시 모달리스 창 자동 생성
+        self.create_modaless()  # 시작 시 모달리스 창 생성만 하고 보이지 않게 함
         self.loadSettings()   # 설정 불러오기
         
     def initUI(self):
@@ -123,7 +123,8 @@ class MainWindow(QMainWindow):
             self.modaless_window.close()
         event.accept()
 
-    def show_modaless(self):
+    def create_modaless(self):
+        """모달리스 창을 생성만 하고 보이지 않게 함"""
         if self.modaless_window is None:
             self.modaless_window = ModalessWindow(parent=self)
             
@@ -138,9 +139,13 @@ class MainWindow(QMainWindow):
             else:
                 # 기본 위치와 크기 설정
                 self.modaless_window.setGeometry(300, 300, 400, 300)
-        
+
+    def show_modaless(self):
+        """모달리스 창을 생성하고 보이게 함"""
+        if self.modaless_window is None:
+            self.create_modaless()
         self.modaless_window.show()
-        
+
     def change_opacity(self, value):
         if self.modaless_window is not None:
             opacity = value / 100.0
@@ -197,9 +202,7 @@ class MainWindow(QMainWindow):
     def toggle_modaless(self):
         """모달리스 창 보이기/숨기기 토글"""
         if self.modaless_window is None:
-            self.modaless_window = ModalessWindow(parent=self)
-            self.modaless_window.setWindowOpacity(self.basic_tab.opacity_slider.value() / 100.0)
-            self.modaless_window.show()
+            self.show_modaless()
         else:
             if self.modaless_window.isVisible():
                 self.modaless_window.hide()

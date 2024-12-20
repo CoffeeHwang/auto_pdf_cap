@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
-                           QListWidgetItem, QDialog)
-from PyQt5.QtCore import Qt
+                           QListWidgetItem, QDialog, QDesktopWidget)
+from PyQt5.QtCore import Qt, QSettings, QPoint
 from PyQt5.QtGui import QPixmap
 
 class ImagePreviewDialog(QDialog):
@@ -8,6 +8,13 @@ class ImagePreviewDialog(QDialog):
         super().__init__(parent, Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)  
         self.setStyleSheet("background-color: black;")
         self.setAttribute(Qt.WA_ShowWithoutActivating)  
+        
+        # 마우스 드래그 관련 변수
+        self.dragging = False
+        self.drag_position = QPoint()
+        
+        # 설정 객체 생성
+        self.settings = QSettings('Coffee.Hwang', 'AutoPdfCap')
         
         layout = QVBoxLayout(self)
         
@@ -21,6 +28,56 @@ class ImagePreviewDialog(QDialog):
         
         # 창 크기를 이미지에 맞게 조절
         self.resize(scaled_pixmap.width(), scaled_pixmap.height())
+        
+        # 창이 닫힐 때 위치 저장
+        self.closeEvent = self.on_close
+        
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragging = True
+            # 현재 마우스 위치와 창의 위치 차이를 저장
+            self.drag_position = event.globalPos() - self.frameGeometry().topLeft()
+            event.accept()
+            
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.LeftButton and self.dragging:
+            # 창을 새로운 위치로 이동
+            self.move(event.globalPos() - self.drag_position)
+            event.accept()
+            
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.dragging = False
+            event.accept()
+        
+    def get_center_position(self):
+        # 화면의 중앙 위치 계산
+        screen = QDesktopWidget().screenGeometry()
+        size = self.geometry()
+        return (screen.width() - size.width()) // 2, (screen.height() - size.height()) // 2
+        
+    def is_valid_position(self, pos):
+        # 위치가 화면 내에 있는지 확인
+        screen = QDesktopWidget().screenGeometry()
+        return (0 <= pos.x() <= screen.width() - self.width() and 
+                0 <= pos.y() <= screen.height() - self.height())
+        
+    def position_window(self):
+        # 저장된 위치 불러오기
+        pos = self.settings.value('preview_window_pos')
+        
+        if pos and self.is_valid_position(pos):
+            # 저장된 위치가 있고 유효하면 해당 위치로 이동
+            self.move(pos)
+        else:
+            # 저장된 위치가 없거나 유효하지 않으면 화면 중앙으로 이동
+            x, y = self.get_center_position()
+            self.move(x, y)
+            
+    def on_close(self, event):
+        # 창이 닫힐 때 현재 위치 저장
+        self.settings.setValue('preview_window_pos', self.pos())
+        event.accept()
 
 class ImageListWidget(QListWidget):
     def __init__(self, parent=None):
@@ -76,10 +133,7 @@ class ImageListWidget(QListWidget):
             
             # 새 미리보기 창 생성 및 표시
             self.preview_dialog = ImagePreviewDialog(image_path, self)
-            
-            # 현재 마우스 위치에서 약간 오프셋을 준 위치에 창 표시
-            cursor_pos = self.cursor().pos()
-            self.preview_dialog.move(cursor_pos.x() + 20, cursor_pos.y() + 20)
+            self.preview_dialog.position_window()  # 위치 설정
             self.preview_dialog.show()
 
     def keyPressEvent(self, event):

@@ -144,6 +144,39 @@ class ImageListWidget(QListWidget):
                 self.preview_dialog.close()
                 self.preview_dialog = None
             event.accept()
+        # Delete 또는 Backspace 키가 눌렸을 때
+        elif event.key() in (Qt.Key_Delete, Qt.Key_Backspace):
+            # 선택된 아이템들의 행 번호를 저장
+            selected_rows = [self.row(item) for item in self.selectedItems()]
+            if not selected_rows:
+                return
+                
+            # 마지막으로 선택된 아이템의 행 번호
+            last_selected_row = max(selected_rows)
+            
+            # 선택된 아이템들을 리스트에서 제거
+            for item in self.selectedItems():
+                # 미리보기 창이 열려있고, 현재 삭제하려는 아이템의 이미지를 보여주고 있다면 닫기
+                if (self.preview_dialog and 
+                    self.preview_dialog.isVisible() and 
+                    item.data(Qt.UserRole) == self.selectedItems()[0].data(Qt.UserRole)):
+                    self.preview_dialog.close()
+                    self.preview_dialog = None
+                
+                # 아이템 삭제
+                self.takeItem(self.row(item))
+            
+            # 삭제 후 아이템이 남아있는 경우
+            if self.count() > 0:
+                # 하단 아이템이 있는지 확인
+                if last_selected_row < self.count():
+                    # 하단 아이템 선택
+                    self.setCurrentRow(last_selected_row)
+                else:
+                    # 상단 아이템 선택 (마지막 아이템)
+                    self.setCurrentRow(self.count() - 1)
+            
+            event.accept()
         else:
             # 다른 키는 기본 처리
             super().keyPressEvent(event)

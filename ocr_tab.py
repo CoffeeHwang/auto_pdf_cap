@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
-                           QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox, QTextEdit)
+                           QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox)
 from PyQt5.QtCore import Qt, QSettings, QPoint
-from PyQt5.QtGui import QPixmap, QFont, QFontDatabase
+from PyQt5.QtGui import QPixmap
 import os
 from outline_ocr import run_ocr
 
@@ -203,20 +203,6 @@ class OcrTab(QWidget):
         self.scan_button.setEnabled(False)  # 초기 상태는 비활성화
         layout.addWidget(self.scan_button)
         
-        # OCR 결과 표시를 위한 QTextEdit 추가
-        self.result_text = QTextEdit()
-        self.result_text.setReadOnly(False)  # 편집 가능하도록 설정
-        self.result_text.setPlaceholderText("OCR 결과가 여기에 표시됩니다.")
-        
-        # D2Coding 폰트 로드 및 설정
-        font_path = os.path.join(os.path.dirname(__file__), 'fonts', 'D2Coding.ttf')
-        font_id = QFontDatabase.addApplicationFont(font_path)
-        font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-        font = QFont(font_family, 12)
-        self.result_text.setFont(font)
-        
-        layout.addWidget(self.result_text)
-        
     def update_scan_button(self):
         """이미지 리스트의 상태에 따라 스캔 버튼 활성화/비활성화"""
         self.scan_button.setEnabled(self.image_list.count() > 0)
@@ -235,17 +221,14 @@ class OcrTab(QWidget):
         secret_key = self.settings.value('ocr/secret_key', '')
         api_url = self.settings.value('ocr/api_url', '')
         if secret_key and api_url:
-            # OCR 실행 전에 결과창 초기화
-            self.result_text.clear()
-            self.result_text.setPlaceholderText("OCR 처리 중...")
-            
             ocr_lines: list = run_ocr(secret_key, api_url, file_paths)
             
-            # OCR 결과 표시
+            # OCR 결과를 개요적용 탭으로 전달
             if ocr_lines:
-                self.result_text.setPlainText("\n".join(ocr_lines))
-            else:
-                self.result_text.setPlainText("OCR 결과가 없습니다.")
+                summary_tab = self.main_window.summary_tab
+                summary_tab.summary_text.setPlainText("\n".join(ocr_lines))
+                # 개요적용 탭으로 전환
+                self.main_window.tab_widget.setCurrentWidget(summary_tab)
         else:
             print("OCR 설정이 없습니다. 환경설정에서 설정하세요.")
             QMessageBox.warning(self, "경고", 

@@ -1,5 +1,6 @@
 # _ 로 시작하는 폴더 무시
 _*
 .idea
+.vscode
 venv/
 test*.py

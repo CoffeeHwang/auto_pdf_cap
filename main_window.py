@@ -6,6 +6,7 @@ from modaless_window import ModalessWindow
 from worker_cap import WorkerCapture
 from basic_tab import BasicTab
 from ocr_tab import OcrTab
+from summary_tab import SummaryTab
 from settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):
@@ -36,6 +37,10 @@ class MainWindow(QMainWindow):
         # 두 번째 탭: OCR 설정
         self.ocr_tab = OcrTab(self)
         self.tab_widget.addTab(self.ocr_tab, "개요OCR추출")
+
+        # 세 번째 탭: 개요 적용
+        self.summary_tab = SummaryTab(self)
+        self.tab_widget.addTab(self.summary_tab, "개요적용")
 
         self.setWindowTitle('메인 창')
         self.setGeometry(100, 100, 500, 400)

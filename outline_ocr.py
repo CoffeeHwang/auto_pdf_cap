@@ -168,7 +168,6 @@ def apply_page_offset(input_lines: list, page_offset: int) -> list:
             split_fields = line.split('\t')
             title = split_fields[0]
             page = split_fields[-1]
-            print(f'title={title}, page={page}')
             apply_lines.append( title + '\t' + str(int(page) + page_offset) )
         else:
             apply_lines.append(line)

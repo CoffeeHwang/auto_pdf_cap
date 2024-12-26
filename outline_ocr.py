@@ -58,17 +58,32 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
             # noinspection PyRedeclaration
             line = ''
             for field in image['fields']:
-                text: str = field['inferText']  # 추출된 글자
+                text: str = field['inferText'].strip()  # 추출된 글자 (앞뒤 공백 제거)
                 line_break: bool = field['lineBreak']  # 라인끝 여부
+
+                # 페이지 번호인지 확인
+                # 1. 순수 숫자인 경우
+                # 2. 숫자+'p'로 끝나는 경우 (예: "123p")
+                # 3. 숫자+'페이지'로 끝나는 경우 (예: "123페이지")
+                is_page_number = False
+                if text.isdigit():  # 순수 숫자
+                    is_page_number = True
+                else:
+                    # 'p' 또는 '페이지'로 끝나는 경우 처리
+                    for suffix in ['p', '페이지']:
+                        if text.endswith(suffix) and text[:-len(suffix)].isdigit():
+                            text = text[:-len(suffix)]  # 접미사 제거
+                            is_page_number = True
+                            break
 
                 # 텍스트 포맷팅 설정
                 # 필드값이 페이지값인지 여부에 따라 접두어로 \t를 붙인다.
-                prefix = '\t' if (not line_start and
-                                  line_break and
-                                  ( text.isdigit() or ( text[:-1].isdigit() and text.endswith('p') ) )
-                                  ) \
-                              else ' ' if not line_start \
-                              else ''
+                if not line_start and line_break and is_page_number:
+                    prefix = '\t'
+                elif not line_start:
+                    prefix = ' '
+                else:
+                    prefix = ''
 
                 line += f'{prefix}{text}'
 
@@ -77,7 +92,8 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
 
                 # 라인끝 처리
                 if line_break:
-                    ocr_lines.append(line)
+                    if line.strip():  # 빈 라인 제외
+                        ocr_lines.append(line)
                     line = ''
     print(f'OCR처리완료! 총 {len(image_files)}건 \n\n')
     return ocr_lines
@@ -159,19 +175,40 @@ def apply_page_offset(input_lines: list, page_offset: int) -> list:
     """
     페이지넘버가 존재하는 라인인지 검사후 페이지넘버를 오프셋 값만큼 가감한뒤 다시 문자열로 결합한다.
     (이 작업이 필요한 이유 : 가끔 어떤 pdf는 앞표지를 1페이지로 포함하여 1장씩 뒤로 밀리는 경우가 있다.)
+    
+    Args:
+        input_lines (list): 입력 라인 리스트
+        page_offset (int): 페이지 오프셋 값 (+1 또는 -1)
+        
+    Returns:
+        list: 페이지 오프셋이 적용된 라인 리스트
     """
     apply_lines = []
     if page_offset == 0:
         return input_lines
+        
     for i, line in enumerate(input_lines):
         if '\t' in line:
-            split_fields = line.split('\t')
-            title = split_fields[0]
-            page = split_fields[-1]
-            apply_lines.append( title + '\t' + str(int(page) + page_offset) )
+            try:
+                split_fields = line.split('\t')
+                title = split_fields[0]
+                page = split_fields[-1].strip()  # 앞뒤 공백 제거
+                
+                # 페이지 번호를 정수로 변환
+                page_num = int(page)
+                
+                # 오프셋 적용 후 음수가 되지 않도록 처리
+                new_page = max(1, page_num + page_offset)
+                
+                apply_lines.append(f"{title}\t{new_page}")
+            except (ValueError, IndexError) as e:
+                # 페이지 번호가 숫자가 아니거나, 분리된 필드가 부족한 경우
+                apply_lines.append(line)  # 원본 라인 유지
         else:
             apply_lines.append(line)
+            
     return apply_lines
+
 
 def apply_none_page(input_lines: list, page_offset: int) -> list:
     """

@@ -1,25 +1,24 @@
 from PyQt5.QtWidgets import QTextEdit, QSizePolicy
-from PyQt5.QtCore import Qt, QSize, QPoint
-from PyQt5.QtGui import QTextCursor
-import os
+from PyQt5.QtCore import Qt, QSize, QPoint, QMimeData
+from PyQt5.QtGui import QTextCursor, QDragEnterEvent, QDropEvent
 
 class CustomTextEdit(QTextEdit):
     RESIZE_HANDLE_HEIGHT = 10
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent = parent
         self.setup_editor()
         self.resize_mode = False
         self.start_pos = None
         self.start_height = None
         self.setMouseTracking(True)
+        self.setAcceptDrops(True)
         
     def setup_editor(self):
         """에디터 설정"""
         # 탭 크기 설정 (4칸)
         self.setTabStopWidth(self.fontMetrics().width(' ') * 4)
-        # 드래그 앤 드롭 활성화
-        self.setAcceptDrops(True)
         # 크기 조절 정책 설정
         size_policy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         size_policy.setVerticalStretch(0)  # 수직 방향으로 확장하지 않음
@@ -31,6 +30,31 @@ class CustomTextEdit(QTextEdit):
         # 크기 조절 활성화
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """드래그 진입 이벤트"""
+        mime_data: QMimeData = event.mimeData()
+        if mime_data.hasUrls() and mime_data.urls()[0].toLocalFile().endswith('.txt'):
+            event.acceptProposedAction()
+            
+    def dropEvent(self, event: QDropEvent):
+        """드롭 이벤트"""
+        file_path = event.mimeData().urls()[0].toLocalFile()
+        try:
+            # 파일 내용 읽기
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.setPlainText(content)
+            
+            # 부모 위젯(SummaryTab)의 파일명 업데이트
+            if hasattr(self.parent, 'set_current_filename'):
+                filename = file_path.split('/')[-1]  # 파일명 추출
+                self.parent.set_current_filename(filename)
+                self.parent.status_label.setText(f"파일을 불러왔습니다: {filename}")
+                
+        except Exception as e:
+            if hasattr(self.parent, 'status_label'):
+                self.parent.status_label.setText(f"파일 불러오기 실패: {str(e)}")
+                
     def mousePressEvent(self, event):
         """마우스 클릭 이벤트"""
         if event.button() == Qt.LeftButton and self.is_in_resize_handle(event.pos()):
@@ -40,7 +64,9 @@ class CustomTextEdit(QTextEdit):
             event.accept()
         else:
             super().mousePressEvent(event)
-            
+            if event.button() == Qt.LeftButton:
+                self.viewport().setCursor(Qt.IBeamCursor)
+                
     def mouseReleaseEvent(self, event):
         """마우스 릴리즈 이벤트"""
         if self.resize_mode:
@@ -50,6 +76,7 @@ class CustomTextEdit(QTextEdit):
             event.accept()
         else:
             super().mouseReleaseEvent(event)
+            self.viewport().setCursor(Qt.IBeamCursor)
             
     def mouseMoveEvent(self, event):
         """마우스 이동 이벤트"""
@@ -64,47 +91,16 @@ class CustomTextEdit(QTextEdit):
             else:
                 self.viewport().setCursor(Qt.IBeamCursor)
             super().mouseMoveEvent(event)
-            
+            if event.buttons() & Qt.LeftButton:
+                if self.verticalScrollBar().isVisible():
+                    if event.pos().y() >= self.height() - 10:  # 하단 10픽셀 영역
+                        self.viewport().setCursor(Qt.SizeVerCursor)
+                    else:
+                        self.viewport().setCursor(Qt.IBeamCursor)
+                        
     def is_in_resize_handle(self, pos):
         """크기 조절 핸들 영역인지 확인"""
         return self.height() - self.RESIZE_HANDLE_HEIGHT <= pos.y() <= self.height()
-            
-    def dragEnterEvent(self, event):
-        """드래그 진입 이벤트"""
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event):
-        """드래그 이동 이벤트"""
-        if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
-            event.accept()
-        else:
-            super().dragMoveEvent(event)
-
-    def dropEvent(self, event):
-        """드롭 이벤트"""
-        if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
-            event.accept()
-            
-            for url in event.mimeData().urls():
-                file_path = url.toLocalFile()
-                if file_path.lower().endswith('.txt'):
-                    try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        self.setPlainText(content)
-                        if hasattr(self.parent(), 'status_label'):
-                            self.parent().status_label.setText(f"파일을 불러왔습니다: {os.path.basename(file_path)}")
-                    except Exception as e:
-                        if hasattr(self.parent(), 'status_label'):
-                            self.parent().status_label.setText(f"파일 불러오기 실패: {str(e)}")
-                    break  # 첫 번째 텍스트 파일만 처리
-        else:
-            super().dropEvent(event)
             
     def keyPressEvent(self, event):
         """키 입력 이벤트 처리"""

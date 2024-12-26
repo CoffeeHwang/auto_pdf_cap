@@ -67,6 +67,7 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
                 # 3. 숫자+'페이지'로 끝나는 경우 (예: "123페이지")
                 is_page_number = False
                 if text.isdigit():  # 순수 숫자
+                    text = int(text)  # "014" 와 같은 경우도 숫자로 변환 : "014" -> 4
                     is_page_number = True
                 else:
                     # 'p' 또는 '페이지'로 끝나는 경우 처리

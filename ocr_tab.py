@@ -226,7 +226,7 @@ class OcrTab(QWidget):
             # OCR 결과를 개요적용 탭으로 전달
             if ocr_lines:
                 summary_tab = self.main_window.summary_tab
-                summary_tab.summary_text.setPlainText("\n".join(ocr_lines))
+                summary_tab.update_from_ocr_tab("\n".join(ocr_lines))
                 # 개요적용 탭으로 전환
                 self.main_window.tab_widget.setCurrentWidget(summary_tab)
         else:

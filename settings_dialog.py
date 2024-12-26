@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
-                           QLabel, QLineEdit, QGroupBox, QPushButton)
+                           QLabel, QLineEdit, QGroupBox, QPushButton,
+                           QFileDialog)
 from PyQt5.QtCore import QSettings
+import os
 
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.settings = QSettings('Coffee.Hwang', 'AutoPdfCap')
+        self.settings = QSettings('AutoPdfCap', 'Settings')
         self.setup_ui()
         self.load_settings()
         
@@ -37,6 +39,22 @@ class SettingsDialog(QDialog):
         ocr_layout.addLayout(key_layout)
         ocr_layout.addLayout(url_layout)
         ocr_group.setLayout(ocr_layout)
+        layout.addWidget(ocr_group)
+        
+        # 편집기 그룹
+        editor_group = QGroupBox("외부 편집기 설정")
+        editor_layout = QHBoxLayout()
+        
+        self.editor_path_edit = QLineEdit()
+        self.editor_path_edit.setPlaceholderText("편집기 경로를 입력하거나 선택하세요...")
+        editor_layout.addWidget(self.editor_path_edit)
+        
+        select_editor_btn = QPushButton("편집기 선택")
+        select_editor_btn.clicked.connect(self.select_editor)
+        editor_layout.addWidget(select_editor_btn)
+        
+        editor_group.setLayout(editor_layout)
+        layout.addWidget(editor_group)
         
         # 버튼
         button_layout = QHBoxLayout()
@@ -46,25 +64,34 @@ class SettingsDialog(QDialog):
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
         
+        layout.addStretch()
+        layout.addLayout(button_layout)
+        
         # 시그널 연결
         save_button.clicked.connect(self.save_and_close)
         cancel_button.clicked.connect(self.reject)
         
-        # 레이아웃 구성
-        layout.addWidget(ocr_group)
-        layout.addStretch()
-        layout.addLayout(button_layout)
-        
     def load_settings(self):
         """저장된 설정 불러오기"""
-        self.key_edit.setText(self.settings.value('ocr/secret_key', ''))
-        self.url_edit.setText(self.settings.value('ocr/api_url', ''))
+        self.key_edit.setText(self.settings.value("secret_key", ""))
+        self.url_edit.setText(self.settings.value("api_url", ""))
+        self.editor_path_edit.setText(self.settings.value("editor_path", ""))
         
     def save_and_close(self):
-        """설정 저장 및 창 닫기"""
-        # 설정 저장
-        self.settings.setValue('ocr/secret_key', self.key_edit.text())
-        self.settings.setValue('ocr/api_url', self.url_edit.text())
-        self.settings.sync()  # 설정을 디스크에 즉시 저장
+        """설정 저장 및 다이얼로그 닫기"""
+        self.settings.setValue("secret_key", self.key_edit.text())
+        self.settings.setValue("api_url", self.url_edit.text())
+        self.settings.setValue("editor_path", self.editor_path_edit.text())
+        self.accept()
         
-        self.accept()  # 다이얼로그 닫기
+    def select_editor(self):
+        """외부 편집기 선택"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "편집기 선택",
+            "/Applications" if os.path.exists("/Applications") else "",  # macOS의 경우 Applications 폴더
+            "실행 파일 (*);;모든 파일 (*.*)"
+        )
+        
+        if file_path:
+            self.editor_path_edit.setText(file_path)

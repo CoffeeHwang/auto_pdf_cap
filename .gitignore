@@ -4,3 +4,4 @@ _*
 .vscode
 venv/
 test*.py
+*.txt

@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtSignal
-from auto_pdf_capture import *
+from auto_pdf_capture import auto_pdf_capture
 
 
 class WorkerCapture(QObject):

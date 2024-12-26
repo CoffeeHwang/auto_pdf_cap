@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                            QPushButton, QLabel, QGroupBox, QFileDialog,
                            QMessageBox, QDialog)
-from PyQt5.QtCore import Qt, QProcess, QSettings
+from PyQt5.QtCore import Qt, QProcess, QSettings, QFileSystemWatcher
 from PyQt5.QtGui import QFont, QFontDatabase
 import os
 import tempfile
@@ -16,6 +16,9 @@ class SummaryTab(QWidget):
         self.temp_file = None  # 임시 파일 객체 저장
         self.process = None  # QProcess 객체 저장
         self.current_filename = ""  # 현재 파일명 저장
+        self.current_file_path = ""  # 현재 파일 경로 저장
+        self.file_watcher = QFileSystemWatcher()  # 파일 변경 감지
+        self.file_watcher.fileChanged.connect(self.on_file_changed)  # 파일 변경 시그널 연결
         self.initUI()
         
     def initUI(self):
@@ -132,17 +135,15 @@ class SummaryTab(QWidget):
                     self.current_filename = "untitled_outlines.txt"
                 self.current_filename_label.setText(self.current_filename)
             
-            # 현재 디렉터리에 파일 생성 (중복 처리)
-            base_path = os.path.join(os.getcwd(), self.current_filename)
-            file_path = self.get_unique_filename(base_path)
-            
-            # 파일명이 변경되었다면 UI 업데이트
-            if file_path != base_path:
-                self.current_filename = os.path.basename(file_path)
-                self.current_filename_label.setText(self.current_filename)
-            
-            with open(file_path, 'w', encoding='utf-8') as f:
+            # 현재 디렉터리에 파일 생성
+            self.current_file_path = os.path.join(os.getcwd(), self.current_filename)
+            with open(self.current_file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
+            
+            # 파일 감시 시작
+            if self.current_file_path in self.file_watcher.files():
+                self.file_watcher.removePath(self.current_file_path)
+            self.file_watcher.addPath(self.current_file_path)
             
             # 이전 프로세스가 있다면 정리
             if self.process is not None:
@@ -150,27 +151,31 @@ class SummaryTab(QWidget):
             
             # 외부 편집기로 파일 열기
             self.process = QProcess()
-            self.process.start(editor_path, [file_path])
+            self.process.start(editor_path, [self.current_file_path])
             
             self.status_label.setText(f"외부 편집기에서 파일이 열렸습니다: {self.current_filename}")
             
         except Exception as e:
             QMessageBox.critical(self, "오류", f"편집기로 열기 실패: {str(e)}")
             self.status_label.setText("편집기로 열기 실패")
-        
-    def get_unique_filename(self, base_filename: str) -> str:
-        """중복되지 않는 파일명 생성"""
-        if not os.path.exists(base_filename):
-            return base_filename
             
-        name, ext = os.path.splitext(base_filename)
-        index = 1
-        
-        while True:
-            new_filename = f"{name}({index}){ext}"
-            if not os.path.exists(new_filename):
-                return new_filename
-            index += 1
+    def on_file_changed(self, path):
+        """파일이 변경되면 호출되는 함수"""
+        try:
+            # 파일이 존재하는지 확인 (삭제되지 않았는지)
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                self.summary_text.setPlainText(content)
+                self.status_label.setText("파일이 업데이트되었습니다.")
+                
+                # 일부 에디터는 파일을 저장할 때 새로운 파일을 만들고 이름을 바꾸는 방식을 사용
+                # 이 경우 파일 감시를 다시 설정해야 함
+                if path not in self.file_watcher.files():
+                    self.file_watcher.addPath(path)
+                    
+        except Exception as e:
+            self.status_label.setText(f"파일 업데이트 실패: {str(e)}")
             
     def set_current_filename(self, filename: str):
         """현재 파일명 설정 및 표시"""
@@ -276,16 +281,13 @@ class SummaryTab(QWidget):
             basic_tab = self.parent.tab_widget.widget(0)  # 첫 번째 탭(BasicTab)
             filename = basic_tab.file_name_edit.text().strip()
             if filename:
-                self.set_current_filename(filename)
+                self.set_current_filename(filename + ".txt")
         except Exception:
             pass
 
     def closeEvent(self, event):
-        """위젯이 닫힐 때 임시 파일 정리"""
-        if self.temp_file:
-            try:
-                self.temp_file.close()
-                os.unlink(self.temp_file.name)  # 임시 파일 삭제
-            except:
-                pass
-        super().closeEvent(event)
+        """위젯이 닫힐 때 파일 감시 중지"""
+        if hasattr(self, 'current_file_path') and self.current_file_path:
+            if self.current_file_path in self.file_watcher.files():
+                self.file_watcher.removePath(self.current_file_path)
+        event.accept()

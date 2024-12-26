@@ -102,8 +102,17 @@ class SummaryTab(QWidget):
     def apply_summary(self):
         summary_text = self.summary_text.toPlainText()
         if summary_text:
+            # 현재 스크롤바 위치 저장
+            scrollbar = self.summary_text.verticalScrollBar()
+            current_scroll = scrollbar.value()
+            
+            # 텍스트 적용
             ocr_lines = apply_indentation(input_lines=summary_text.split('\n'))
-            self.summary_text.setPlainText("\n".join(ocr_lines))            
+            self.summary_text.setPlainText("\n".join(ocr_lines))
+            
+            # 스크롤바 위치 복원
+            scrollbar.setValue(current_scroll)
+            
             self.status_label.setText("개요가 적용되었습니다.")
         else:
             self.status_label.setText("개요를 입력해주세요.")
@@ -116,16 +125,34 @@ class SummaryTab(QWidget):
         """모든 페이지 번호를 1씩 증가"""
         summary_text = self.summary_text.toPlainText()
         if summary_text:
+            # 현재 스크롤바 위치 저장
+            scrollbar = self.summary_text.verticalScrollBar()
+            current_scroll = scrollbar.value()
+            
+            # 텍스트 적용
             ocr_lines = apply_page_offset(input_lines=summary_text.split('\n'), page_offset=1)
-            self.summary_text.setPlainText("\n".join(ocr_lines))            
+            self.summary_text.setPlainText("\n".join(ocr_lines))
+            
+            # 스크롤바 위치 복원
+            scrollbar.setValue(current_scroll)
+            
             self.status_label.setText("페이지 번호가 1+ 오프셋 적용되었습니다.")
         
     def decrease_pages(self):
         """모든 페이지 번호를 1씩 감소"""
         summary_text = self.summary_text.toPlainText()
         if summary_text:
+            # 현재 스크롤바 위치 저장
+            scrollbar = self.summary_text.verticalScrollBar()
+            current_scroll = scrollbar.value()
+            
+            # 텍스트 적용
             ocr_lines = apply_page_offset(input_lines=summary_text.split('\n'), page_offset=-1)
-            self.summary_text.setPlainText("\n".join(ocr_lines))            
+            self.summary_text.setPlainText("\n".join(ocr_lines))
+            
+            # 스크롤바 위치 복원
+            scrollbar.setValue(current_scroll)
+            
             self.status_label.setText("페이지 번호가 1- 오프셋 적용되었습니다.")
 
 # end of file

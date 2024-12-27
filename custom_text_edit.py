@@ -8,7 +8,8 @@ class CustomTextEdit(QTextEdit):
         super().__init__(parent)
         self.parent = parent
         self.setup_editor()
-        self.textChanged.connect(self.on_text_changed)  # 텍스트 변경 시그널 연결
+        self._content_changed = False  # 내용 변경 플래그
+        self.textChanged.connect(self._on_content_changed)
         
     def setup_editor(self):
         """에디터 설정"""
@@ -59,18 +60,52 @@ class CustomTextEdit(QTextEdit):
         else:
             event.ignore()
 
-    def on_text_changed(self):
-        """텍스트가 변경될 때마다 호출되는 함수"""
-        if hasattr(self.parent, 'current_file_path') and self.parent.current_file_path:
-            try:
-                content = self.toPlainText()
-                with open(self.parent.current_file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
+    def _on_content_changed(self):
+        """텍스트 내용이 변경되었음을 표시"""
+        self._content_changed = True
+        if hasattr(self.parent, 'status_label'):
+            self.parent.status_label.setText("편집 중...")
+            
+    def save_if_needed(self):
+        """필요한 경우에만 저장 수행"""
+        if not self._content_changed:
+            return False
+            
+        if not self.parent or not hasattr(self.parent, 'current_file_path'):
+            return False
+            
+        file_path = self.parent.current_file_path
+        if not file_path:
+            return False
+            
+        try:
+            if not os.path.exists(os.path.dirname(file_path)):
                 if hasattr(self.parent, 'status_label'):
-                    self.parent.status_label.setText("파일이 자동 저장되었습니다.")
-            except Exception as e:
-                if hasattr(self.parent, 'status_label'):
-                    self.parent.status_label.setText(f"파일 저장 실패: {str(e)}")
+                    self.parent.status_label.setText("저장할 디렉토리가 존재하지 않습니다.")
+                return False
+                
+            content = self.toPlainText()
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            self._content_changed = False  # 저장 완료 후 플래그 초기화
+            
+            if hasattr(self.parent, 'status_label'):
+                self.parent.status_label.setText("자동 저장됨")
+            return True
+            
+        except PermissionError:
+            if hasattr(self.parent, 'status_label'):
+                self.parent.status_label.setText("파일 저장 권한이 없습니다.")
+        except Exception as e:
+            if hasattr(self.parent, 'status_label'):
+                self.parent.status_label.setText(f"저장 실패: {str(e)}")
+        return False
+            
+    def focusOutEvent(self, event):
+        """포커스를 잃을 때 자동 저장"""
+        self.save_if_needed()
+        super().focusOutEvent(event)
 
     def keyPressEvent(self, event):
         """키 입력 이벤트 처리"""            

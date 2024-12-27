@@ -4,12 +4,12 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt, QProcess, QSettings, QFileSystemWatcher
 from PyQt5.QtGui import QFont, QFontDatabase
 import os
-import tempfile
 from custom_text_edit import CustomTextEdit
-from outline_ocr import apply_indentation, apply_page_offset
+from outline_ocr import apply_indentation, apply_page_offset, apply_none_page
 from settings_dialog import SettingsDialog
+from supa_common import log
 
-class SummaryTab(QWidget):
+class GenOutlineTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -69,11 +69,11 @@ class SummaryTab(QWidget):
         self.open_editor_btn.clicked.connect(self.open_in_editor)
         button_layout.addWidget(self.open_editor_btn)
         
-        self.apply_btn = QPushButton("개요 적용")
+        self.apply_btn = QPushButton("개요생성")
         self.apply_btn.clicked.connect(self.apply_summary)
         
-        self.clear_btn = QPushButton("초기화")
-        self.clear_btn.clicked.connect(self.clear_summary)
+        self.clear_btn = QPushButton("누락페이지 적용")
+        self.clear_btn.clicked.connect(self.apply_none_page)
         
         # 페이지 번호 조절 버튼 추가
         self.increase_btn = QPushButton("페이지 +1")
@@ -86,6 +86,11 @@ class SummaryTab(QWidget):
         button_layout.addWidget(self.clear_btn)
         button_layout.addWidget(self.increase_btn)
         button_layout.addWidget(self.decrease_btn)
+        
+        # 개요적용 버튼 추가
+        self.outline_btn = QPushButton("개요적용")
+        self.outline_btn.clicked.connect(self.apply_outline)
+        button_layout.addWidget(self.outline_btn)
         
         layout.addLayout(button_layout)
         
@@ -234,9 +239,27 @@ class SummaryTab(QWidget):
         else:
             self.status_label.setText("개요를 입력해주세요.")
             
-    def clear_summary(self):
-        self.summary_text.clear()
-        self.status_label.setText("")
+    def apply_none_page(self):
+        summary_text = self.summary_text.toPlainText()
+        if summary_text:
+            # 현재 스크롤바 위치 저장
+            scrollbar = self.summary_text.verticalScrollBar()
+            current_scroll = scrollbar.value()
+            
+            # 텍스트 적용
+            ocr_lines = apply_none_page(input_lines=summary_text.split('\n'), page_offset=-1)
+            self.summary_text.setPlainText("\n".join(ocr_lines))
+            
+            # 스크롤바 위치 복원
+            scrollbar.setValue(current_scroll)
+            
+            self.status_label.setText("누락페이지가 적용되었습니다.")
+        else:
+            self.status_label.setText("개요를 입력해주세요.")
+        
+    def apply_outline(self):
+        """개요 적용"""
+        pass
         
     def increase_pages(self):
         """모든 페이지 번호를 1씩 증가"""

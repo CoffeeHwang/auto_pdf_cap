@@ -4,10 +4,14 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt, QProcess, QSettings, QFileSystemWatcher
 from PyQt5.QtGui import QFont, QFontDatabase
 import os
+import sys
+import subprocess
 from custom_text_edit import CustomTextEdit
 from outline_ocr import apply_indentation, apply_page_offset, apply_none_page
+from pypdf2_ol_gen import pdf_outline_gen
 from settings_dialog import SettingsDialog
 from supa_common import log
+from drop_area_widget import DropAreaWidget
 
 class GenOutlineTab(QWidget):
     def __init__(self, parent=None):
@@ -46,18 +50,18 @@ class GenOutlineTab(QWidget):
         input_layout.addWidget(label)
         
         # OCR 결과를 표시할 CustomTextEdit 추가
-        self.summary_text = CustomTextEdit(self)  # parent 설정
-        self.summary_text.setPlaceholderText("OCR 탭에서 추출된 텍스트가 여기에 표시됩니다...")
-        self.summary_text.setFrameStyle(0)  # 프레임 제거
+        self.te_outlines = CustomTextEdit(self)  # parent 설정
+        self.te_outlines.setPlaceholderText("OCR 탭에서 추출된 텍스트가 여기에 표시됩니다...")
+        self.te_outlines.setFrameStyle(0)  # 프레임 제거
         
         # D2Coding 폰트 로드 및 설정
         font_path = os.path.join(os.path.dirname(__file__), 'fonts', 'D2Coding.ttf')
         font_id = QFontDatabase.addApplicationFont(font_path)
         font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
         font = QFont(font_family, 12)
-        self.summary_text.setFont(font)
+        self.te_outlines.setFont(font)
         
-        input_layout.addWidget(self.summary_text, stretch=1)
+        input_layout.addWidget(self.te_outlines, stretch=1)
         input_group.setLayout(input_layout)
         layout.addWidget(input_group, stretch=1)
         
@@ -69,10 +73,10 @@ class GenOutlineTab(QWidget):
         self.open_editor_btn.clicked.connect(self.open_in_editor)
         button_layout.addWidget(self.open_editor_btn)
         
-        self.apply_btn = QPushButton("개요생성")
-        self.apply_btn.clicked.connect(self.apply_summary)
+        self.gen_outline_btn = QPushButton("개요생성")
+        self.gen_outline_btn.clicked.connect(self.gen_outline)
         
-        self.clear_btn = QPushButton("누락페이지 적용")
+        self.clear_btn = QPushButton("페이지채우기")
         self.clear_btn.clicked.connect(self.apply_none_page)
         
         # 페이지 번호 조절 버튼 추가
@@ -82,17 +86,25 @@ class GenOutlineTab(QWidget):
         self.decrease_btn = QPushButton("페이지 -1")
         self.decrease_btn.clicked.connect(self.decrease_pages)
         
-        button_layout.addWidget(self.apply_btn)
+        button_layout.addWidget(self.gen_outline_btn)
         button_layout.addWidget(self.clear_btn)
         button_layout.addWidget(self.increase_btn)
         button_layout.addWidget(self.decrease_btn)
         
         # 개요적용 버튼 추가
-        self.outline_btn = QPushButton("개요적용")
-        self.outline_btn.clicked.connect(self.apply_outline)
-        button_layout.addWidget(self.outline_btn)
+        self.apply_outline_btn = QPushButton("개요적용")
+        self.apply_outline_btn.clicked.connect(self.apply_outline)
+        button_layout.addWidget(self.apply_outline_btn)
         
         layout.addLayout(button_layout)
+        
+        # PDF 파일 드롭 영역 추가
+        pdf_group = QGroupBox("PDF 파일")
+        pdf_layout = QVBoxLayout()
+        self.pdf_drop_area = DropAreaWidget(['pdf'], self)
+        pdf_layout.addWidget(self.pdf_drop_area)
+        pdf_group.setLayout(pdf_layout)
+        layout.addWidget(pdf_group)
         
         # 상태 표시 레이블
         self.status_label = QLabel("")
@@ -103,7 +115,7 @@ class GenOutlineTab(QWidget):
             
     def open_in_editor(self):
         """현재 텍스트를 외부 편집기로 열기"""
-        content = self.summary_text.toPlainText()
+        content = self.te_outlines.toPlainText()
         if not content.strip():
             self.status_label.setText("편집할 내용이 없습니다.")
             return
@@ -171,7 +183,7 @@ class GenOutlineTab(QWidget):
             if os.path.exists(path):
                 with open(path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                self.summary_text.setPlainText(content)
+                self.te_outlines.setPlainText(content)
                 self.status_label.setText("파일이 업데이트되었습니다.")
                 
                 # 일부 에디터는 파일을 저장할 때 새로운 파일을 만들고 이름을 바꾸는 방식을 사용
@@ -200,7 +212,7 @@ class GenOutlineTab(QWidget):
         
     def save_file(self):
         """현재 텍스트를 파일로 저장"""
-        content = self.summary_text.toPlainText()
+        content = self.te_outlines.toPlainText()
         if not content.strip():
             self.status_label.setText("저장할 내용이 없습니다.")
             return
@@ -221,16 +233,17 @@ class GenOutlineTab(QWidget):
             except Exception as e:
                 self.status_label.setText(f"파일 저장 실패: {str(e)}")
                 
-    def apply_summary(self):
-        summary_text = self.summary_text.toPlainText()
-        if summary_text:
+    def gen_outline(self):
+        """개요 적용"""
+        te_outlines = self.te_outlines.toPlainText()
+        if te_outlines:
             # 현재 스크롤바 위치 저장
-            scrollbar = self.summary_text.verticalScrollBar()
+            scrollbar = self.te_outlines.verticalScrollBar()
             current_scroll = scrollbar.value()
             
             # 텍스트 적용
-            ocr_lines = apply_indentation(input_lines=summary_text.split('\n'))
-            self.summary_text.setPlainText("\n".join(ocr_lines))
+            ocr_lines = apply_indentation(input_lines=te_outlines.split('\n'))
+            self.te_outlines.setPlainText("\n".join(ocr_lines))
             
             # 스크롤바 위치 복원
             scrollbar.setValue(current_scroll)
@@ -240,38 +253,73 @@ class GenOutlineTab(QWidget):
             self.status_label.setText("개요를 입력해주세요.")
             
     def apply_none_page(self):
-        summary_text = self.summary_text.toPlainText()
-        if summary_text:
+        te_outlines = self.te_outlines.toPlainText()
+        if te_outlines:
             # 현재 스크롤바 위치 저장
-            scrollbar = self.summary_text.verticalScrollBar()
+            scrollbar = self.te_outlines.verticalScrollBar()
             current_scroll = scrollbar.value()
             
             # 텍스트 적용
-            ocr_lines = apply_none_page(input_lines=summary_text.split('\n'), page_offset=-1)
-            self.summary_text.setPlainText("\n".join(ocr_lines))
+            ocr_lines = apply_none_page(input_lines=te_outlines.split('\n'), page_offset=-1)
+            self.te_outlines.setPlainText("\n".join(ocr_lines))
             
             # 스크롤바 위치 복원
             scrollbar.setValue(current_scroll)
             
-            self.status_label.setText("누락페이지가 적용되었습니다.")
+            self.status_label.setText("빈 페이지를 채웠습니다.")
         else:
             self.status_label.setText("개요를 입력해주세요.")
         
     def apply_outline(self):
         """개요 적용"""
-        pass
+        log(self)
+        # 안전 검사
+        if not self.pdf_drop_area.file_path:
+            self.status_label.setText("PDF 파일이 선택되지 않았습니다.")
+            return
+        if not self.current_file_path:
+            self.status_label.setText("개요 파일이 생성되지 않았습니다.")
+            return
+        if not os.path.exists(self.current_file_path):
+            self.status_label.setText("개요 파일이 존재하지 않습니다.")
+            return
+        
+        # 개요 pdf 파일적용 로직
+        pdf_outline_gen(
+            pdf_file=self.pdf_drop_area.file_path,
+            ol_file=self.current_file_path,
+            depth_sep='    ',
+            page_sep='\t'
+        )
+        self.status_label.setText("개요가 적용되었습니다.")
+        self.open_pdf_location()
+
+    def open_pdf_location(self):
+        """생성된 PDF 파일 경로를 탐색기로 오픈"""
+        if self.pdf_drop_area.file_path and os.path.exists(self.pdf_drop_area.file_path):
+            pdf_dir = os.path.dirname(self.pdf_drop_area.file_path)
+            if sys.platform == "win32":
+                os.startfile(pdf_dir)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", pdf_dir])
+            else:  # linux variants
+                subprocess.Popen(["xdg-open", pdf_dir])
+            self.status_label.setText("PDF 파일 위치가 열렸습니다.")
+        else:
+            self.status_label.setText("PDF 파일이 존재하지 않습니다.")
+
         
     def increase_pages(self):
         """모든 페이지 번호를 1씩 증가"""
-        summary_text = self.summary_text.toPlainText()
-        if summary_text:
+        te_outlines = self.te_outlines.toPlainText()
+        if te_outlines:
             # 현재 스크롤바 위치 저장
-            scrollbar = self.summary_text.verticalScrollBar()
+            scrollbar = self.te_outlines.verticalScrollBar()
             current_scroll = scrollbar.value()
             
             # 텍스트 적용
-            ocr_lines = apply_page_offset(input_lines=summary_text.split('\n'), page_offset=1)
-            self.summary_text.setPlainText("\n".join(ocr_lines))
+            ocr_lines = apply_page_offset(input_lines=te_outlines.split('\n'), page_offset=1)
+            self.te_outlines.setPlainText("\n".join(ocr_lines))
             
             # 스크롤바 위치 복원
             scrollbar.setValue(current_scroll)
@@ -280,24 +328,24 @@ class GenOutlineTab(QWidget):
         
     def decrease_pages(self):
         """모든 페이지 번호를 1씩 감소"""
-        summary_text = self.summary_text.toPlainText()
-        if summary_text:
+        te_outlines = self.te_outlines.toPlainText()
+        if te_outlines:
             # 현재 스크롤바 위치 저장
-            scrollbar = self.summary_text.verticalScrollBar()
+            scrollbar = self.te_outlines.verticalScrollBar()
             current_scroll = scrollbar.value()
             
             # 텍스트 적용
-            ocr_lines = apply_page_offset(input_lines=summary_text.split('\n'), page_offset=-1)
-            self.summary_text.setPlainText("\n".join(ocr_lines))
+            ocr_lines = apply_page_offset(input_lines=te_outlines.split('\n'), page_offset=-1)
+            self.te_outlines.setPlainText("\n".join(ocr_lines))
             
             # 스크롤바 위치 복원
             scrollbar.setValue(current_scroll)
             
             self.status_label.setText("페이지 번호가 1- 오프셋 적용되었습니다.")
-
+        
     def update_from_ocr_tab(self, text_content):
         """OCR 탭에서 텍스트 업데이트"""
-        self.summary_text.setPlainText(text_content)
+        self.te_outlines.setPlainText(text_content)
         
         # 기본 탭의 파일명 가져오기
         try:

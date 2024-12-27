@@ -7,7 +7,6 @@ from worker_cap import WorkerCapture
 from basic_tab import BasicTab
 from ocr_tab import OcrTab
 from gen_outline_tab import GenOutlineTab
-from apply_outline_tab import ApplyOutlineTab
 from settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):
@@ -42,10 +41,6 @@ class MainWindow(QMainWindow):
         # 세 번째 탭: 개요 생성
         self.gen_outline_tab = GenOutlineTab(self)
         self.tab_widget.addTab(self.gen_outline_tab, "개요생성")
-
-        # 네 번째 탭: 개요 적용
-        self.apply_outline_tab = ApplyOutlineTab(self)
-        self.tab_widget.addTab(self.apply_outline_tab, "개요적용")
 
         self.setWindowTitle('메인 창')
         self.setGeometry(100, 100, 500, 400)

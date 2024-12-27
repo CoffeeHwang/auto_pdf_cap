@@ -48,10 +48,11 @@ class CustomTextEdit(QTextEdit):
                 # 텍스트 설정 및 편집 가능하게 설정
                 self.setPlainText(content)
                 
-                # 부모 위젯(SummaryTab)의 파일명 업데이트
+                # 부모 위젯(SummaryTab)의 파일명 및 경로 업데이트
                 if hasattr(self.parent, 'set_current_filename'):
                     filename = file_path.split('/')[-1]  # 파일명 추출
                     self.parent.set_current_filename(filename)
+                    self.parent.current_file_path = file_path  # 경로 업데이트
                     self.parent.status_label.setText(f"파일을 불러왔습니다: {filename}")
                     
             except Exception as e:

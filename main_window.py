@@ -4,9 +4,9 @@ from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget,
 from PyQt5.QtCore import Qt, QRect, QPoint, QSettings, QThread
 from modaless_window import ModalessWindow
 from worker_cap import WorkerCapture
-from basic_tab import BasicTab
-from ocr_tab import OcrTab
-from gen_outline_tab import GenOutlineTab
+from tab_basic import BasicTab
+from tab_ocr import OcrTab
+from tab_gen_outline import GenOutlineTab
 from settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):

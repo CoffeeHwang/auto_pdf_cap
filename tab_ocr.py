@@ -225,10 +225,10 @@ class OcrTab(QWidget):
             
             # OCR 결과를 개요적용 탭으로 전달
             if ocr_lines:
-                summary_tab = self.main_window.summary_tab
-                summary_tab.update_from_ocr_tab("\n".join(ocr_lines))
+                gen_outline_tab = self.main_window.gen_outline_tab
+                gen_outline_tab.update_from_ocr_tab("\n".join(ocr_lines))
                 # 개요적용 탭으로 전환
-                self.main_window.tab_widget.setCurrentWidget(summary_tab)
+                self.main_window.tab_widget.setCurrentWidget(gen_outline_tab)
         else:
             print("OCR 설정이 없습니다. 환경설정에서 설정하세요.")
             QMessageBox.warning(self, "경고", 

@@ -237,7 +237,8 @@ class MainWindow(QMainWindow):
                              int(self.basic_tab.y2_spin.value()),
                              int(self.basic_tab.margin_edit.text()), 
                              int(self.basic_tab.diff_width_edit.text()),
-                             float(self.basic_tab.delay_edit.text()))
+                             float(self.basic_tab.delay_edit.text()),
+                             self.basic_tab.left_first_check.isChecked())
         self.worker.moveToThread(self.thread) # type: ignore
 
         self.thread.started.connect(self.worker.run)

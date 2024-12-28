@@ -53,13 +53,14 @@ def auto_pdf_capture(file_name: str, page_loop: int,
                      x1: int, y1: int, x2: int, y2: int,
                      margin: int = 0, diff_width: int = 0,
                      res: int = 1, automation_delay: float = 0.2,
+                     left_first: bool = True,
                      log_message_signal: pyqtSignal | pyqtBoundSignal | None = None) -> bool:
     """
     자동으로 화면을 캡쳐한뒤 pdf를 생성한다.
 
     Args:
         file_name: 생성될 pdf 파일명
-                   '실전에서 바로쓰는 Next.js (박수현 역) - 한빛미디어'  # 책이름(저자 or 역자 or 옮김) - 출판사명
+                   '실전에서 바로쓰는 Next.js (박수현 역) - 한빛미디어'  # 책이름(저자 or 역자 or 옮김) - 출판사명
         page_loop : 캡쳐 반복 횟수 (캡쳐 페이지수)
         x1: 캡쳐할 영역의 우상단 x 좌표 (여백을 완전히 배제한, 컨텐츠가 있는 영역만을 판단)
         y1: 캡쳐할 영역의 우상단 y 좌표 (여백을 완전히 배제한, 컨텐츠가 있는 영역만을 판단)
@@ -74,6 +75,7 @@ def auto_pdf_capture(file_name: str, page_loop: int,
              pillow 버전업되면서(? 확실친 않음) 무조건 1로 해야 한다.
         automation_delay: 자동화 딜레이 시간(초) 설정. 페이지 로딩할 시간을 일정시간(초) 부여 해준다.
                           (가끔 로딩이 완료 되지 않은 상태에서 캡쳐가 되면 글자가 뭉개지기 때문.)
+        left_first: 좌측부터 캡쳐할지 여부. True면 좌측부터, False면 우측부터 캡쳐한다.
         log_message_signal: 로그 메시지를 전달할 신호
     Returns:
         bool: 성공여부
@@ -135,7 +137,12 @@ def auto_pdf_capture(file_name: str, page_loop: int,
 
     # 페이지 수 까지 반복 캡쳐 수행
     for i in range(2, page_loop + 1):
-        capture_region = capture_region_left_page if i % 2 == 1 else capture_region_right_page
+        # 좌측부터 시작하는 경우와 우측부터 시작하는 경우에 따라 캡쳐 순서를 다르게 처리
+        if left_first:
+            capture_region = capture_region_left_page if i % 2 == 0 else capture_region_right_page
+        else:
+            capture_region = capture_region_right_page if i % 2 == 0 else capture_region_left_page
+            
         show_log(f'캡쳐 {i} - {capture_region}')
         _screenshot(capture_region, file_name, i)
         pyautogui.press("right")

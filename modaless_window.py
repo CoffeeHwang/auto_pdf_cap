@@ -1,8 +1,9 @@
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget, 
                            QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget,
                            QDesktopWidget)
-from PyQt5.QtCore import Qt, QRect, QPoint, QSettings, QTimer, QObject, pyqtSignal, QThread
+from PyQt5.QtCore import Qt, QRect, QPoint, QTimer, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QPainter, QPen, QColor, QCursor
+from supa_settings import SupaSettings
 
 
 class ModalessWindow(QWidget):
@@ -337,7 +338,7 @@ class ModalessWindow(QWidget):
             
     def loadSettings(self) -> None:
         """저장된 설정을 불러옵니다."""
-        settings = QSettings('AutoPdfCapture', 'ModalessWindow')
+        settings = SupaSettings()
         geometry = settings.value('geometry')
         if geometry:
             self.setGeometry(geometry)

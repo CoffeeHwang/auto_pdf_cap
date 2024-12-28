@@ -3,11 +3,13 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
                            QFileDialog)
 from PyQt5.QtCore import QSettings
 import os
+from supa_common import log
+from supa_settings import SupaSettings
 
 class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.settings = QSettings('AutoPdfCap', 'Settings')
+        self.settings = SupaSettings()
         self.setup_ui()
         self.load_settings()
         
@@ -47,6 +49,7 @@ class SettingsDialog(QDialog):
         
         self.editor_path_edit = QLineEdit()
         self.editor_path_edit.setPlaceholderText("편집기 경로를 입력하거나 선택하세요...")
+        self.editor_path_edit.setText(self.settings.value("editor_path", ""))  # 초기값 설정
         editor_layout.addWidget(self.editor_path_edit)
         
         select_editor_btn = QPushButton("편집기 선택")
@@ -73,14 +76,14 @@ class SettingsDialog(QDialog):
         
     def load_settings(self):
         """저장된 설정 불러오기"""
-        self.key_edit.setText(self.settings.value("secret_key", ""))
-        self.url_edit.setText(self.settings.value("api_url", ""))
+        self.key_edit.setText(self.settings.value("ocr/secret_key", ""))
+        self.url_edit.setText(self.settings.value("ocr/api_url", ""))
         self.editor_path_edit.setText(self.settings.value("editor_path", ""))
         
     def save_and_close(self):
         """설정 저장 및 다이얼로그 닫기"""
-        self.settings.setValue("secret_key", self.key_edit.text())
-        self.settings.setValue("api_url", self.url_edit.text())
+        self.settings.setValue("ocr/secret_key", self.key_edit.text())
+        self.settings.setValue("ocr/api_url", self.url_edit.text())
         self.settings.setValue("editor_path", self.editor_path_edit.text())
         self.accept()
         

@@ -1,18 +1,19 @@
 from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget, 
                            QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget,
                            QMenuBar, QMenu, QAction)
-from PyQt5.QtCore import Qt, QRect, QPoint, QSettings, QThread
+from PyQt5.QtCore import Qt, QRect, QPoint, QThread
 from modaless_window import ModalessWindow
 from worker_cap import WorkerCapture
 from tab_basic import BasicTab
 from tab_ocr import OcrTab
 from tab_gen_outline import GenOutlineTab
 from settings_dialog import SettingsDialog
+from supa_settings import SupaSettings
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.settings = QSettings('MyCompany', 'RectangleApp')  # 설정 객체 생성
+        self.settings = SupaSettings()  
         self.modaless_window = None
         self.initUI()
         self.create_modaless()  # 시작 시 모달리스 창 생성만 하고 보이지 않게 함
@@ -95,9 +96,10 @@ class MainWindow(QMainWindow):
                 self.modaless_window.can_draw = False  # 새로 그리기 방지
                 self.modaless_window.update()
         
-        # file_name과 page_loop 값 불러오기
+        # 기타설정값 불러오기
         self.basic_tab.file_name_edit.setText(self.settings.value('MainWindow/file_name', ''))
         self.basic_tab.page_loop_edit.setText(self.settings.value('MainWindow/page_loop', ''))
+        self.basic_tab.delay_edit.setText(self.settings.value('MainWindow/capture_delay', '0'))
 
     def saveSettings(self):
         """현재 설정 저장"""
@@ -122,9 +124,10 @@ class MainWindow(QMainWindow):
             self.settings.setValue('ModalessWindow/geometry', 
                                  self.modaless_window.saveGeometry())
         
-        # file_name과 page_loop 값 저장
+        # 기타설정값 저장
         self.settings.setValue('MainWindow/file_name', self.basic_tab.file_name_edit.text())
         self.settings.setValue('MainWindow/page_loop', self.basic_tab.page_loop_edit.text())
+        self.settings.setValue('MainWindow/capture_delay', self.basic_tab.delay_edit.text())
 
     def closeEvent(self, event):
         """프로그램 종료 시 설정 저장"""

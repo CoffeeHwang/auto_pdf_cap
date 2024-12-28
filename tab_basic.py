@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QSlider, 
                            QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit,
                            QCheckBox)
-from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtCore import Qt
+from supa_settings import SupaSettings
 
 class BasicTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_window = parent
-        self.settings = QSettings('Coffee.Hwang', 'AutoPdfCap')
+        self.settings = SupaSettings()
         self.setup_ui()
 
     def setup_ui(self):
@@ -81,7 +82,7 @@ class BasicTab(QWidget):
         left_first_label = QLabel('좌측부터', self)
         left_first_label.setToolTip('캡쳐 순서를 좌측부터 시작할지 여부를 설정합니다.')
         self.left_first_check = QCheckBox(self)
-        self.left_first_check.setChecked(self.settings.value('basic/left_first', True, type=bool))
+        self.left_first_check.setChecked(self.settings.value('basic/left_first', True))
         self.left_first_check.stateChanged.connect(self.on_left_first_changed)
         left_first_layout.addWidget(left_first_label)
         left_first_layout.addWidget(self.left_first_check)
@@ -169,5 +170,4 @@ class BasicTab(QWidget):
         """좌측부터 스위치 상태가 변경되면 호출되는 메서드"""
         is_checked = bool(state)
         self.settings.setValue('basic/left_first', is_checked)
-        self.settings.sync()  # 설정을 즉시 저장
         print(f"좌측부터 설정이 변경되었습니다: {is_checked}")

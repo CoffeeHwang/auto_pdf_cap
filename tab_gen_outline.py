@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                            QPushButton, QLabel, QGroupBox, QFileDialog,
                            QMessageBox, QDialog)
-from PyQt5.QtCore import Qt, QProcess, QSettings, QFileSystemWatcher
+from PyQt5.QtCore import Qt, QProcess, QFileSystemWatcher
 from PyQt5.QtGui import QFont, QFontDatabase
 import os
 import sys
@@ -12,6 +12,7 @@ from pypdf2_ol_gen import pdf_outline_gen
 from settings_dialog import SettingsDialog
 from supa_common import log
 from drop_area_widget import DropAreaWidget
+from supa_settings import SupaSettings
 
 class GenOutlineTab(QWidget):
     def __init__(self, parent=None):
@@ -121,7 +122,7 @@ class GenOutlineTab(QWidget):
             return
             
         # 설정에서 편집기 경로 가져오기
-        settings = QSettings("AutoPdfCap", "Settings")
+        settings = SupaSettings()
         editor_path = settings.value("editor_path", "")
         
         if not editor_path:

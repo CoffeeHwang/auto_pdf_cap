@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
                            QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox)
-from PyQt5.QtCore import Qt, QSettings, QPoint
+from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPixmap
 import os
 from outline_ocr import run_ocr
+from supa_settings import SupaSettings
 
 class ImagePreviewDialog(QDialog):
     def __init__(self, image_path, parent=None):
@@ -16,7 +17,7 @@ class ImagePreviewDialog(QDialog):
         self.drag_position = QPoint()
         
         # 설정 객체 생성
-        self.settings = QSettings('Coffee.Hwang', 'AutoPdfCap')
+        self.settings = SupaSettings()
         
         layout = QVBoxLayout(self)
         
@@ -181,7 +182,7 @@ class OcrTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_window = parent
-        self.settings = QSettings('Coffee.Hwang', 'AutoPdfCap')
+        self.settings = SupaSettings()
         self.setup_ui()
 
     def setup_ui(self):
@@ -218,8 +219,8 @@ class OcrTab(QWidget):
             print(f"파일 경로: {file_path}")
             file_paths.append(file_path)
 
-        secret_key = self.settings.value('ocr/secret_key', '')
-        api_url = self.settings.value('ocr/api_url', '')
+        secret_key = self.settings.value("ocr/secret_key", "")
+        api_url = self.settings.value("ocr/api_url", "")
         if secret_key and api_url:
             ocr_lines: list = run_ocr(secret_key, api_url, file_paths)
             

@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget, 
                            QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget,
-                           QMenuBar, QMenu, QAction)
+                           QMenuBar, QMenu, QAction, QShortcut)
 from PyQt5.QtCore import Qt, QRect, QPoint, QThread
+from PyQt5.QtGui import QKeySequence
 from modaless_window import ModalessWindow
 from worker_cap import WorkerCapture
 from tab_basic import BasicTab
@@ -9,6 +10,7 @@ from tab_ocr import OcrTab
 from tab_gen_outline import GenOutlineTab
 from settings_dialog import SettingsDialog
 from supa_settings import SupaSettings
+import sys
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -18,7 +20,8 @@ class MainWindow(QMainWindow):
         self.initUI()
         self.create_modaless()  # 시작 시 모달리스 창 생성만 하고 보이지 않게 함
         self.loadSettings()   # 설정 불러오기
-        
+        self.setup_shortcuts()
+
     def initUI(self):
         # 메뉴바 생성
         self.create_menu_bar()
@@ -268,3 +271,9 @@ class MainWindow(QMainWindow):
         """환경설정 창을 표시"""
         dialog = SettingsDialog(self)
         dialog.exec_()
+
+    def setup_shortcuts(self):
+        """단축키를 설정합니다."""
+        # 종료 단축키 설정 (macOS에서는 자동으로 Cmd로 변환됨)
+        close_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
+        close_shortcut.activated.connect(self.close)

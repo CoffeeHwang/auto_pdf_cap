@@ -226,7 +226,13 @@ class OcrTab(QWidget):
             # OCR 결과를 개요적용 탭으로 전달
             if ocr_lines:
                 gen_outline_tab = self.main_window.gen_outline_tab
-                gen_outline_tab.update_from_ocr_tab("\n".join(ocr_lines))
+                # 현재 PDF 파일 정보가 있으면 함께 전달
+                current_file = None
+                if hasattr(self.main_window, 'basic_tab'):
+                    file_name = self.main_window.basic_tab.file_name_edit.text().strip()
+                    if file_name:
+                        current_file = file_name + ".txt"
+                gen_outline_tab.update_from_ocr_tab("\n".join(ocr_lines), current_file)
                 # 개요적용 탭으로 전환
                 self.main_window.tab_widget.setCurrentWidget(gen_outline_tab)
         else:

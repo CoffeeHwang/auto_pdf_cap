@@ -343,18 +343,25 @@ class GenOutlineTab(QWidget):
             
             self.status_label.setText("페이지 번호가 1- 오프셋 적용되었습니다.")
         
-    def update_from_ocr_tab(self, text_content):
+    def update_from_ocr_tab(self, text_content: str, current_file: str = None):
         """OCR 탭에서 텍스트 업데이트"""
         self.te_outlines.setPlainText(text_content)
         
-        # 기본 탭의 파일명 가져오기
-        try:
-            basic_tab = self.parent.tab_widget.widget(0)  # 첫 번째 탭(BasicTab)
-            filename = basic_tab.file_name_edit.text().strip()
-            if filename:
-                self.set_current_filename(filename + ".txt")
-        except Exception:
-            pass
+        # 현재 파일 경로가 전달된 경우 해당 파일명을 사용
+        if current_file:
+            self.set_current_filename(current_file)
+            # PDF 파일 경로도 업데이트
+            if os.path.exists(current_file):
+                self.pdf_drop_area.set_file_path(current_file)
+        else:
+            # 기본 탭의 파일명 가져오기
+            try:
+                basic_tab = self.parent.tab_widget.widget(0)  # 첫 번째 탭(BasicTab)
+                filename = basic_tab.file_name_edit.text().strip()
+                if filename:
+                    self.set_current_filename(filename + ".txt")
+            except Exception:
+                pass
 
     def closeEvent(self, event):
         """위젯이 닫힐 때 파일 감시 중지"""

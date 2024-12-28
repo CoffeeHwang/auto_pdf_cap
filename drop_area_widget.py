@@ -38,3 +38,11 @@ class DropAreaWidget(QLabel):
         self.file_path = file_path
         self.update_text()
         event.acceptProposedAction()
+
+    def set_file_path(self, file_path: str) -> None:
+        """파일 경로를 설정하고 표시 텍스트를 업데이트합니다."""
+        if os.path.exists(file_path):
+            file_ext = file_path.lower().split('.')[-1]
+            if file_ext in self.accept_extensions:
+                self.file_path = file_path
+                self.update_text()

@@ -70,21 +70,21 @@ class GenOutlineTab(QWidget):
         button_layout = QHBoxLayout()
         
         # 외부 편집기로 열기 버튼
-        self.open_editor_btn = QPushButton("편집기로 열기")
+        self.open_editor_btn = QPushButton("편집기 열기")
         self.open_editor_btn.clicked.connect(self.open_in_editor)
         button_layout.addWidget(self.open_editor_btn)
         
-        self.gen_outline_btn = QPushButton("개요생성")
+        self.gen_outline_btn = QPushButton("개요포맷")
         self.gen_outline_btn.clicked.connect(self.gen_outline)
         
-        self.clear_btn = QPushButton("페이지채우기")
+        self.clear_btn = QPushButton("페이지넘버링")
         self.clear_btn.clicked.connect(self.apply_none_page)
         
         # 페이지 번호 조절 버튼 추가
-        self.increase_btn = QPushButton("페이지 +1")
+        self.increase_btn = QPushButton("페이지넘버 +1")
         self.increase_btn.clicked.connect(self.increase_pages)
         
-        self.decrease_btn = QPushButton("페이지 -1")
+        self.decrease_btn = QPushButton("페이지넘버 -1")
         self.decrease_btn.clicked.connect(self.decrease_pages)
         
         button_layout.addWidget(self.gen_outline_btn)

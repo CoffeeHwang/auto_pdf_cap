@@ -34,17 +34,17 @@ class MainWindow(QMainWindow):
         self.tab_widget = QTabWidget(self)
         layout.addWidget(self.tab_widget)  # 기존 레이아웃에 탭 위젯 추가
     
-        # 첫 번째 탭: 기본 설정
+        # 첫 번째 탭
         self.basic_tab = BasicTab(self)
         self.tab_widget.addTab(self.basic_tab, "캡쳐자동화")
 
-        # 두 번째 탭: OCR 설정
+        # 두 번째 탭
         self.ocr_tab = OcrTab(self)
         self.tab_widget.addTab(self.ocr_tab, "개요OCR추출")
 
-        # 세 번째 탭: 개요 생성
+        # 세 번째 탭
         self.gen_outline_tab = GenOutlineTab(self)
-        self.tab_widget.addTab(self.gen_outline_tab, "개요생성")
+        self.tab_widget.addTab(self.gen_outline_tab, "개요적용")
 
         self.setWindowTitle('메인 창')
         self.setGeometry(100, 100, 500, 400)

@@ -267,37 +267,4 @@ def get_image_files(path) -> list[str]:
                 image_files.append( os.path.join(path,file) )
     return image_files
 
-
-if __name__ == '__main__':
-    ocr_lines = run_ocr(secret_key='dXpzVWpGcmRpeUpuWXlheGhXQ2NBS1dqbFBLZUFWY28=',
-                        api_url='https://yi449te0ik.apigw.ntruss.com/custom/v1/35556/bcb66120ed7db6a5b822bd8dcc730dd4b37095eb6e68f6e281ef9cfc1b1acc48/general',
-                        image_files=get_image_files("./__OCR 대상파일"))
-
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/1. OCR완료파일.txt")
-
-    ocr_lines = apply_indentation(input_lines=ocr_lines)
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/2. 목차완성.txt")
-
-    ocr_lines = apply_page_offset(input_lines=ocr_lines, page_offset=1)
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/3. 목차완성-오프셋처리.txt")
-
-    ocr_lines = apply_none_page(input_lines=ocr_lines, page_offset=-1)
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/4. 목차완성-페이지넘버누락처리.txt")
-    for i, line in enumerate(ocr_lines):
-        print(f'{i:03}....{line}')
-
-
-if __name__ == '__test__':
-    ocr_lines = read_file2list(input_file="./__OCR 대상파일/1. OCR완료파일.txt")
-
-    ocr_lines = apply_indentation(input_lines=ocr_lines)
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/2. 목차완성.txt")
-
-    ocr_lines = apply_page_offset(input_lines=ocr_lines, page_offset=1)
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/3. 목차완성-오프셋처리.txt")
-
-    ocr_lines = apply_none_page(input_lines=ocr_lines, page_offset=-1)
-    write_list2file(input_lines=ocr_lines, filename="./__OCR 대상파일/4. 목차완성-페이지넘버누락처리.txt")
-
-    for i, line in enumerate(ocr_lines):
-        print(f'{i:03}....{line}')
+# end of file

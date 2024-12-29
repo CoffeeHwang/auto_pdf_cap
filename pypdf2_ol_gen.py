@@ -71,9 +71,4 @@ def pdf_outline_gen(pdf_file: str, ol_file: str, depth_sep: str, page_sep: str):
     os.rename(pdf_file, os.path.join(pdf_dir, f'_BAK_{pdf_name}'))
     os.rename(os.path.join(pdf_dir, f'_{pdf_name}'), pdf_file)
 
-
-if __name__ == '__main__':
-    pdf_outline_gen(pdf_file=PDF_FILE,
-                    ol_file=OUTLINE_FILE,
-                    depth_sep='    ',
-                    page_sep='	')
+# end of file

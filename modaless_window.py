@@ -344,3 +344,10 @@ class ModalessWindow(QWidget):
             self.setGeometry(geometry)
             # 창 위치가 비정상적인지 확인하고 필요한 경우 중앙으로 이동
             self.moveToCenter()
+
+    def keyPressEvent(self, event):
+        """키 입력 이벤트를 처리합니다."""
+        if event.key() == Qt.Key_Escape:
+            self.hide()
+        else:
+            super().keyPressEvent(event)

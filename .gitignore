@@ -5,6 +5,8 @@ _*
 venv/
 test*.py
 *.txt
+*.png
+*.pdf
 
 # windsurf rules
 .windsurfrules

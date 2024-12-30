@@ -40,13 +40,28 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
 
         payload = {'message': json.dumps(request_json).encode('UTF-8')}
 
-        # files 라고는 하나 2개 이상의 파일을 처리하지 못하는 것으로 보인다.
-        files = [
-            ('file', open(image_file, 'rb')),
-        ]
-
-        response = requests.request("POST", api_url, headers=headers, data=payload, files=files)
-        ocr_result = response.json()
+        try:
+            with open(image_file, 'rb') as f:
+                files = [
+                    ('file', f),
+                ]
+                response = requests.request("POST", api_url, headers=headers, data=payload, files=files)
+                response.raise_for_status()
+        except FileNotFoundError:
+            print(f"⚠️ 이미지 파일을 찾을 수 없습니다: {image_file}")
+            continue
+        except requests.exceptions.ConnectionError:
+            print("⚠️ 네트워크 연결을 확인할 수 없습니다.")
+            return ocr_lines
+        except requests.exceptions.RequestException as e:
+            print(f"❌ OCR API 요청 중 오류 발생: {e}")
+            return ocr_lines
+        
+        try:
+            ocr_result = response.json()
+        except json.JSONDecodeError:
+            print("❌ OCR API 응답을 처리할 수 없습니다.")
+            continue
 
         # print(json.dumps(ocr_result, indent=2))
 

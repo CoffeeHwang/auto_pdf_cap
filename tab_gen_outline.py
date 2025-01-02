@@ -77,7 +77,7 @@ class GenOutlineTab(QWidget):
         self.gen_outline_btn = QPushButton("개요포맷")
         self.gen_outline_btn.clicked.connect(self.gen_outline)
         
-        self.clear_btn = QPushButton("페이지넘버링")
+        self.clear_btn = QPushButton("누락페이지")
         self.clear_btn.clicked.connect(self.apply_none_page)
         
         # 페이지 번호 조절 버튼 추가
@@ -286,14 +286,15 @@ class GenOutlineTab(QWidget):
             return
         
         # 개요 pdf 파일적용 로직
-        pdf_outline_gen(
+        (success, result_msg) = pdf_outline_gen(
             pdf_file=self.pdf_drop_area.file_path,
             ol_file=self.current_file_path,
             depth_sep='    ',
             page_sep='\t'
         )
-        self.status_label.setText("개요가 적용되었습니다.")
-        self.open_pdf_location()
+        self.status_label.setText(result_msg)
+        if success :
+            self.open_pdf_location()
 
     def open_pdf_location(self):
         """생성된 PDF 파일 경로를 탐색기로 오픈"""

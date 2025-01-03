@@ -130,7 +130,7 @@ def auto_pdf_capture(file_name: str, page_loop: int,
 
     # 첫 페이지 캡쳐
     capture_region = capture_region_first_page
-    show_log(f'\n캡쳐 1 - {capture_region}')
+    show_log(f'\n캡쳐 1 - 표지 {capture_region}')
     _screenshot(capture_region, file_name, 1)
     pyautogui.press("right")
     time.sleep(automation_delay)
@@ -143,7 +143,11 @@ def auto_pdf_capture(file_name: str, page_loop: int,
         else:
             capture_region = capture_region_right_page if i % 2 == 0 else capture_region_left_page
             
-        show_log(f'캡쳐 {i} - {capture_region}')
+        if diff_width > 0:
+            which = '좌측 ' if (left_first and i % 2 == 0) or (not left_first and i % 2 != 0) else '우측 '
+        else:
+            which = ''
+        show_log(f'캡쳐 {i} - {which}{capture_region}')
         _screenshot(capture_region, file_name, i)
         pyautogui.press("right")
         pyautogui.sleep(automation_delay)  # 페이지 로딩할 시간을 일정시간(초) 부여 해준다. (가끔 로딩이 완료 되지 않은 상태에서 캡쳐가 되면 글자가 뭉개지기 때문.)

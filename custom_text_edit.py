@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QTextEdit
-from PyQt5.QtCore import Qt, QMimeData
+from PyQt5.QtCore import Qt, QMimeData, QTimer
 from PyQt5.QtGui import QTextCursor, QDragEnterEvent, QDropEvent
 import os
 
@@ -8,7 +8,13 @@ class CustomTextEdit(QTextEdit):
         super().__init__(parent)
         self.parent = parent
         self.setup_editor()
-        self._content_changed = False  # 내용 변경 플래그
+        
+        # 자동저장 타이머 설정
+        self._save_timer = QTimer(self)
+        self._save_timer.setInterval(2000)  # 2초 딜레이
+        self._save_timer.setSingleShot(True)  # 한 번만 실행
+        self._save_timer.timeout.connect(self.save_if_needed)
+        
         self.textChanged.connect(self._on_content_changed)
         
     def setup_editor(self):
@@ -62,21 +68,16 @@ class CustomTextEdit(QTextEdit):
             event.ignore()
 
     def _on_content_changed(self):
-        """텍스트 내용이 변경되었음을 표시"""
-        self._content_changed = True
+        # 타이머 재시작 (이전 타이머가 있다면 취소하고 새로 시작)
+        self._save_timer.start()
         if hasattr(self.parent, 'status_label'):
             self.parent.status_label.setText("편집 중...")
             
     def save_if_needed(self):
-        """필요한 경우에만 저장 수행"""
-        if not self._content_changed:
-            return False
-            
-        if not self.parent or not hasattr(self.parent, 'current_file_path'):
-            return False
-            
+        """필요한 경우에만 저장 수행"""            
         file_path = self.parent.current_file_path
         if not file_path:
+            self.parent.status_label.setText("저장할 파일이 지정되지 않았습니다.")
             return False
             
         try:
@@ -88,8 +89,6 @@ class CustomTextEdit(QTextEdit):
             content = self.toPlainText()
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            
-            self._content_changed = False  # 저장 완료 후 플래그 초기화
             
             if hasattr(self.parent, 'status_label'):
                 self.parent.status_label.setText("자동 저장됨")
@@ -103,11 +102,6 @@ class CustomTextEdit(QTextEdit):
                 self.parent.status_label.setText(f"저장 실패: {str(e)}")
         return False
             
-    def focusOutEvent(self, event):
-        """포커스를 잃을 때 자동 저장"""
-        self.save_if_needed()
-        super().focusOutEvent(event)
-
     def keyPressEvent(self, event):
         """키 입력 이벤트 처리"""            
         cursor = self.textCursor()

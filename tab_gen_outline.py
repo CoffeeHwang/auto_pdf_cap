@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
                            QPushButton, QLabel, QGroupBox, QFileDialog,
-                           QMessageBox, QDialog)
-from PyQt5.QtCore import Qt, QProcess, QFileSystemWatcher
-from PyQt5.QtGui import QFont, QFontDatabase
+                           QMessageBox, QDialog, QTextEdit, QStyle)
+from PyQt5.QtCore import Qt, QFileSystemWatcher
+from PyQt5.QtGui import QFont, QFontDatabase, QIcon
 import os
 import sys
 import subprocess
@@ -14,18 +14,40 @@ from supa_common import log
 from drop_area_widget import DropAreaWidget
 from supa_settings import SupaSettings
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from tab_basic import BasicTab
+
 class GenOutlineTab(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.parent = parent
+        self.parent = parent    
         self.temp_file = None  # 임시 파일 객체 저장
-        self.process = None  # QProcess 객체 저장
-        self.current_filename = ""  # 현재 파일명 저장
-        self.current_file_path = ""  # 현재 파일 경로 저장
+        
+        # 기본 저장 디렉토리 설정
+        if getattr(sys, 'frozen', False):
+            # PyInstaller로 실행된 경우
+            self.save_directory = os.path.dirname(sys.executable)
+        else:
+            # 일반 Python으로 실행된 경우
+            self.save_directory = os.path.dirname(os.path.abspath(__file__))
+            
+        self.current_file_path = ""  # 현재 파일 경로
         self.file_watcher = QFileSystemWatcher()  # 파일 변경 감지
         self.file_watcher.fileChanged.connect(self.on_file_changed)  # 파일 변경 시그널 연결
         self.initUI()
         
+        # BasicTab의 파일명 변경 시그널 연결
+        try:
+            basic_tab: BasicTab = self.parent.tab_widget.widget(0)  # 첫 번째 탭(BasicTab)
+            basic_tab.filename_changed.connect(self._on_basic_tab_filename_changed)
+            # 초기 파일명이 있다면 적용
+            initial_filename = basic_tab.file_name_edit.text().strip()
+            if initial_filename:
+                self._on_basic_tab_filename_changed(initial_filename)
+        except (AttributeError, TypeError) as e:
+            print(f"BasicTab 초기화 중 오류 발생: {e}")  # 로깅으로 대체 가능
+            
     def initUI(self):
         layout = QVBoxLayout()
         layout.setSpacing(10)  # 위젯 간 간격 설정
@@ -36,8 +58,28 @@ class GenOutlineTab(QWidget):
         filename_label.setStyleSheet("font-weight: bold;")
         self.current_filename_label = QLabel("")
         self.current_filename_label.setStyleSheet("color: #0066cc;")
+        
+        # 파일 위치 열기 버튼
+        self.btn_open_location = QPushButton()
+        self.btn_open_location.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))  # 폴더 열기 아이콘
+        self.btn_open_location.setToolTip("파일 위치 열기")
+        self.btn_open_location.setFixedSize(24, 24)  # 버튼 크기 고정
+        self.btn_open_location.setStyleSheet("""
+            QPushButton {
+                border: none;
+                background-color: transparent;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+                border-radius: 3px;
+            }
+        """)
+        self.btn_open_location.clicked.connect(self._open_file_location)
+        self.btn_open_location.setEnabled(False)  # 초기에는 비활성화
+        
         filename_layout.addWidget(filename_label)
         filename_layout.addWidget(self.current_filename_label)
+        filename_layout.addWidget(self.btn_open_location)
         filename_layout.addStretch()
         layout.addLayout(filename_layout)
         
@@ -147,14 +189,13 @@ class GenOutlineTab(QWidget):
             
         try:
             # 현재 파일명이 없으면 기본 파일명 사용
-            if not self.current_filename:
-                self.current_filename = self.get_default_filename()
-                if not self.current_filename:
-                    self.current_filename = "untitled_outlines.txt"
-                self.current_filename_label.setText(self.current_filename)
+            filename = self.get_default_filename()
+            if not filename:
+                filename = "untitled_outlines.txt"
+            self.current_filename_label.setText(filename)
             
             # 현재 디렉터리에 파일 생성
-            self.current_file_path = os.path.join(os.getcwd(), self.current_filename)
+            self.current_file_path = os.path.join(self.save_directory, filename)
             with open(self.current_file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             
@@ -163,15 +204,10 @@ class GenOutlineTab(QWidget):
                 self.file_watcher.removePath(self.current_file_path)
             self.file_watcher.addPath(self.current_file_path)
             
-            # 이전 프로세스가 있다면 정리
-            if self.process is not None:
-                self.process.close()
-            
             # 외부 편집기로 파일 열기
-            self.process = QProcess()
-            self.process.start(editor_path, [self.current_file_path])
+            subprocess.run([editor_path, self.current_file_path])
             
-            self.status_label.setText(f"외부 편집기에서 파일이 열렸습니다: {self.current_filename}")
+            self.status_label.setText(f"외부 편집기에서 파일이 열렸습니다: {filename}")
             
         except Exception as e:
             QMessageBox.critical(self, "오류", f"편집기로 열기 실패: {str(e)}")
@@ -197,42 +233,25 @@ class GenOutlineTab(QWidget):
             
     def set_current_filename(self, filename: str):
         """현재 파일명 설정 및 표시"""
-        self.current_filename = filename
         self.current_filename_label.setText(filename)
+        # 파일 경로 업데이트
+        self.current_file_path = os.path.join(self.save_directory, filename)
+        # 파일명이 있을 때만 위치 열기 버튼 활성화
+        self.btn_open_location.setEnabled(bool(filename.strip()))
         
-    def get_default_filename(self):
+    def get_default_filename(self) -> str:
         """기본 탭의 파일 이름을 가져와서 .txt 확장자를 붙여 반환"""
         try:
-            basic_tab = self.parent.tab_widget.widget(0)  # 첫 번째 탭(BasicTab)
-            filename = basic_tab.file_name_edit.text().strip()
-            if filename and not filename.lower().endswith('.txt'):
-                filename += '.txt'
+            filename = self.current_filename_label.text()
+            if not filename:  # 파일명이 없으면 빈 문자열 반환
+                return ""
+                
+            # 확장자가 .txt가 아니면 .txt를 붙여서 반환
+            if not filename.lower().endswith('.txt'):
+                filename = filename.rsplit('.', 1)[0] + '.txt'
             return filename
         except Exception:
             return ""
-        
-    def save_file(self):
-        """현재 텍스트를 파일로 저장"""
-        content = self.te_outlines.toPlainText()
-        if not content.strip():
-            self.status_label.setText("저장할 내용이 없습니다.")
-            return
-            
-        default_name = self.get_default_filename()
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "파일 저장하기",
-            default_name,  # 기본 파일 이름 설정
-            "텍스트 파일 (*.txt);;모든 파일 (*.*)"
-        )
-        
-        if file_path:
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                self.status_label.setText(f"파일이 저장되었습니다: {os.path.basename(file_path)}")
-            except Exception as e:
-                self.status_label.setText(f"파일 저장 실패: {str(e)}")
                 
     def gen_outline(self):
         """개요 적용"""
@@ -371,3 +390,22 @@ class GenOutlineTab(QWidget):
             if self.current_file_path in self.file_watcher.files():
                 self.file_watcher.removePath(self.current_file_path)
         event.accept()
+        
+    def _on_basic_tab_filename_changed(self, filename: str):
+        """BasicTab의 파일명이 변경될 때 호출되는 메서드"""
+        if filename.strip():
+            # .txt 확장자 추가
+            if not filename.lower().endswith('.txt'):
+                filename = filename.rsplit('.', 1)[0] + '.txt'
+            self.set_current_filename(filename)
+            
+    def _open_file_location(self):
+        """현재 파일이 있는 위치를 파인더에서 열기"""
+        if not self.current_file_path or not os.path.exists(self.current_file_path):
+            QMessageBox.warning(self, "경고", "파일이 아직 저장되지 않았습니다.")
+            return
+            
+        try:
+            subprocess.run(["open", "-R", self.current_file_path])
+        except Exception as e:
+            QMessageBox.critical(self, "오류", f"파일 위치를 열 수 없습니다: {str(e)}")

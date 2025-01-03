@@ -1,14 +1,24 @@
 from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QSlider, 
                            QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit,
                            QCheckBox)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from supa_settings import SupaSettings
 
 class BasicTab(QWidget):
+    # 파일명이 변경될 때 발생하는 시그널 추가
+    filename_changed = pyqtSignal(str)
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_window = parent
         self.settings = SupaSettings()
+        
+        # 파일명 변경 타이머 설정
+        self._filename_timer = QTimer(self)
+        self._filename_timer.setInterval(2000)  # 2초 딜레이
+        self._filename_timer.setSingleShot(True)  # 한 번만 실행
+        self._filename_timer.timeout.connect(self._emit_filename_changed)
+        
         self.setup_ui()
 
     def setup_ui(self):
@@ -70,8 +80,8 @@ class BasicTab(QWidget):
 
         # delay LineEdit
         delay_layout = QVBoxLayout()
-        delay_label = QLabel('Delay (1/1000sec)', self)
-        delay_label.setToolTip('각 페이지 캡쳐 사이의 지연 시간 (1/1000초 단위)')
+        delay_label = QLabel('Delay(초)', self)
+        delay_label.setToolTip('각 페이지 캡쳐 사이의 지연 시간 (초 단위)')
         self.delay_edit = QLineEdit(self)
         self.delay_edit.setText('0.2')
         delay_layout.addWidget(delay_label)
@@ -144,19 +154,21 @@ class BasicTab(QWidget):
         basic_layout.addSpacing(10)
         
         # file_name LineEdit
-        file_name_layout = QVBoxLayout()
-        file_name_label = QLabel('File Name:', self)
-        file_name_label.setToolTip('캡쳐될 pdf 파일명 | 형식 : "책이름(저자등) - 출판사"')
+        name_layout = QVBoxLayout()
+        name_label = QLabel('File Name', self)
+        name_label.setToolTip('생성될 pdf 파일명\n예) 실전에서 바로쓰는 Next.js (박수현 역) - 한빛미디어')
         self.file_name_edit = QLineEdit(self)
-        file_name_layout.addWidget(file_name_label)
-        file_name_layout.addWidget(self.file_name_edit)
+        # 파일명이 변경될 때 시그널 발생
+        self.file_name_edit.textChanged.connect(self._on_filename_changed)
+        name_layout.addWidget(name_label)
+        name_layout.addWidget(self.file_name_edit)
 
         # 시작 버튼
         start_button = QPushButton('시작', self)
         start_button.clicked.connect(self.main_window.start_process)
 
         # 레이아웃에 추가
-        basic_layout.addLayout(file_name_layout)
+        basic_layout.addLayout(name_layout)
         basic_layout.addLayout(page_loop_layout)
         basic_layout.addWidget(start_button)
 
@@ -171,3 +183,13 @@ class BasicTab(QWidget):
         is_checked = bool(state)
         self.settings.setValue('basic/left_first', is_checked)
         print(f"좌측부터 설정이 변경되었습니다: {is_checked}")
+
+    def _on_filename_changed(self, text: str):
+        """파일명이 변경될 때 호출되는 메서드"""
+        # 타이머 재시작
+        self._filename_timer.start()
+        
+    def _emit_filename_changed(self):
+        """타이머가 만료되면 현재 파일명으로 시그널 발생"""
+        current_filename = self.file_name_edit.text()
+        self.filename_changed.emit(current_filename)

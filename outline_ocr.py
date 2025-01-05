@@ -5,9 +5,10 @@ import json
 import re
 import os
 from pathlib import Path
+from typing import Callable
 
 
-def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
+def run_ocr(secret_key: str, api_url: str, image_files: list, show_log: Callable[[str], None] = None) -> list:
     secret_key = secret_key
     api_url = api_url
     image_files = image_files
@@ -20,8 +21,10 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
 
     # 처리 이미지 파일 개수만큼 순회
     for i, image_file in enumerate(image_files):
-
-        print(f'OCR처리중 ({i+1}/{len(image_files)}) - "{image_file}"')
+        if show_log:
+            show_log(f'OCR처리중 ({i+1}/{len(image_files)}) - "{os.path.basename(image_file)}"')
+        else:
+            print(f'OCR처리중 ({i+1}/{len(image_files)}) - "{os.path.basename(image_file)}"')
 
         # CLOVA 요청 가이드 형식에 따름
         # 참조 : https://api.ncloud-docs.com/docs/ai-application-service-ocr-example01
@@ -48,19 +51,31 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
                 response = requests.request("POST", api_url, headers=headers, data=payload, files=files)
                 response.raise_for_status()
         except FileNotFoundError:
-            print(f"⚠️ 이미지 파일을 찾을 수 없습니다: {image_file}")
+            if show_log:
+                show_log(f"⚠️ 이미지 파일을 찾을 수 없습니다: {image_file}")
+            else:
+                print(f"⚠️ 이미지 파일을 찾을 수 없습니다: {image_file}")
             continue
         except requests.exceptions.ConnectionError:
-            print("⚠️ 네트워크 연결을 확인할 수 없습니다.")
+            if show_log:
+                show_log("⚠️ 네트워크 연결을 확인할 수 없습니다.")
+            else:
+                print("⚠️ 네트워크 연결을 확인할 수 없습니다.")
             return ocr_lines
         except requests.exceptions.RequestException as e:
-            print(f"❌ OCR API 요청 중 오류 발생: {e}")
+            if show_log:
+                show_log(f"❌ OCR API 요청 중 오류 발생: {e}")
+            else:
+                print(f"❌ OCR API 요청 중 오류 발생: {e}")
             return ocr_lines
         
         try:
             ocr_result = response.json()
         except json.JSONDecodeError:
-            print("❌ OCR API 응답을 처리할 수 없습니다.")
+            if show_log:
+                show_log("❌ OCR API 응답을 처리할 수 없습니다.")
+            else:
+                print("❌ OCR API 응답을 처리할 수 없습니다.")
             continue
 
         # print(json.dumps(ocr_result, indent=2))
@@ -111,7 +126,10 @@ def run_ocr(secret_key: str, api_url: str, image_files: list) -> list:
                     if line.strip():  # 빈 라인 제외
                         ocr_lines.append(line)
                     line = ''
-    print(f'OCR처리완료! 총 {len(image_files)}건 \n\n')
+    if show_log:
+        show_log(f'OCR처리완료! 총 {len(image_files)}건 \n\n')
+    else:
+        print(f'OCR처리완료! 총 {len(image_files)}건 \n\n')
     return ocr_lines
 
 

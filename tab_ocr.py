@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
-                           QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox)
-from PyQt5.QtCore import Qt, QPoint
+                           QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox,
+                           QTextEdit)
+from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap
 import os
 from outline_ocr import run_ocr
 from supa_settings import SupaSettings
+from worker_ocr import WorkerOcr
 
 class ImagePreviewDialog(QDialog):
     def __init__(self, image_path, parent=None):
@@ -204,40 +206,80 @@ class OcrTab(QWidget):
         self.scan_button.setEnabled(False)  # 초기 상태는 비활성화
         layout.addWidget(self.scan_button)
         
+        # 로그 창 추가
+        self.log_edit = QTextEdit()
+        self.log_edit.setReadOnly(True)  # 읽기 전용으로 설정
+        self.log_edit.setFixedHeight(150)  # 높이 고정
+        layout.addWidget(self.log_edit)
+        
     def update_scan_button(self):
         """이미지 리스트의 상태에 따라 스캔 버튼 활성화/비활성화"""
         self.scan_button.setEnabled(self.image_list.count() > 0)
 
     def on_scan_button_clicked(self):
-        """OCR 스캔 버튼 클릭 시 실행되는 임시 메서드"""
+        """OCR 스캔 버튼 클릭 시 실행"""
+        # 로그 창 초기화
+        self.log_edit.clear()
+        
         image_files = [self.image_list.item(i) for i in range(self.image_list.count())]
             
         # 파일 경로 리스트 생성
         file_paths = []
         for item in image_files:
             file_path = item.data(Qt.UserRole)  # 아이템에 저장된 파일 경로
-            print(f"파일 경로: {file_path}")
             file_paths.append(file_path)
 
         secret_key = self.settings.value("ocr/secret_key", "")
         api_url = self.settings.value("ocr/api_url", "")
         if secret_key and api_url:
-            ocr_lines: list = run_ocr(secret_key, api_url, file_paths)
+            # OCR 워커 쓰레드 생성 및 시작
+            self.ocr_worker = WorkerOcr(secret_key, api_url, file_paths)
+            self.ocr_worker.finished.connect(self.on_ocr_finished)
+            self.ocr_worker.error.connect(self.on_ocr_error)
+            self.ocr_worker.log.connect(self.show_log)
             
-            # OCR 결과를 개요적용 탭으로 전달
-            if ocr_lines:
-                gen_outline_tab = self.main_window.gen_outline_tab
-                # 현재 PDF 파일 정보가 있으면 함께 전달
-                current_file = None
-                if hasattr(self.main_window, 'basic_tab'):
-                    file_name = self.main_window.basic_tab.file_name_edit.text().strip()
-                    if file_name:
-                        current_file = file_name + ".txt"
-                gen_outline_tab.update_from_ocr_tab("\n".join(ocr_lines), current_file)
-                # 개요적용 탭으로 전환
-                self.main_window.tab_widget.setCurrentWidget(gen_outline_tab)
+            # 스캔 버튼 비활성화
+            self.scan_button.setEnabled(False)
+            self.scan_button.setText("OCR 처리중...")
+            
+            # OCR 처리 시작
+            self.ocr_worker.start()
         else:
             print("OCR 설정이 없습니다. 환경설정에서 설정하세요.")
             QMessageBox.warning(self, "경고", 
                               "OCR 설정이 필요합니다.\n\n"
                               "파일 메뉴 → 환경설정에서 Secret Key와 API URL을 설정해주세요.")
+            
+    def show_log(self, message: str):
+        """로그 메시지를 로그 창에 추가"""
+        self.log_edit.append(message)
+        # 자동으로 스크롤
+        self.log_edit.verticalScrollBar().setValue(
+            self.log_edit.verticalScrollBar().maximum()
+        )
+        
+    def on_ocr_finished(self, ocr_lines: list):
+        """OCR 처리가 완료되면 호출되는 메서드"""
+        # OCR 결과를 개요적용 탭으로 전달
+        if ocr_lines:
+            gen_outline_tab = self.main_window.gen_outline_tab
+            # 현재 PDF 파일 정보가 있으면 함께 전달
+            current_file = None
+            if hasattr(self.main_window, 'basic_tab'):
+                file_name = self.main_window.basic_tab.file_name_edit.text().strip()
+                if file_name:
+                    current_file = file_name + ".txt"
+            gen_outline_tab.update_from_ocr_tab("\n".join(ocr_lines), current_file)
+            # 개요적용 탭으로 전환
+            self.main_window.tab_widget.setCurrentWidget(gen_outline_tab)
+            
+        # 스캔 버튼 상태 복원
+        self.scan_button.setEnabled(True)
+        self.scan_button.setText("OCR 스캔")
+        
+    def on_ocr_error(self, error_msg: str):
+        """OCR 처리 중 에러가 발생하면 호출되는 메서드"""
+        QMessageBox.critical(self, "OCR 오류", f"OCR 처리 중 오류가 발생했습니다:\n{error_msg}")
+        # 스캔 버튼 상태 복원
+        self.scan_button.setEnabled(True)
+        self.scan_button.setText("OCR 스캔")

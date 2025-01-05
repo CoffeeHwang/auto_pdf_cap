@@ -205,7 +205,10 @@ class GenOutlineTab(QWidget):
             self.file_watcher.addPath(self.current_file_path)
             
             # 외부 편집기로 파일 열기
-            subprocess.run([editor_path, self.current_file_path])
+            if sys.platform == "darwin":  # macOS
+                subprocess.run(["open", "-a", editor_path, self.current_file_path])
+            else:
+                subprocess.run([editor_path, self.current_file_path])
             
             self.status_label.setText(f"외부 편집기에서 파일이 열렸습니다: {filename}")
             

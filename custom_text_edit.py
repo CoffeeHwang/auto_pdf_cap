@@ -86,9 +86,20 @@ class CustomTextEdit(QTextEdit):
                     self.parent.status_label.setText("저장할 디렉토리가 존재하지 않습니다.")
                 return False
                 
+            # 파일 감시 일시 중단
+            if hasattr(self.parent, 'file_watcher'):
+                was_watching = file_path in self.parent.file_watcher.files()
+                if was_watching:
+                    self.parent.file_watcher.removePath(file_path)
+            
+            # 파일 저장
             content = self.toPlainText()
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
+            
+            # 파일 감시 재시작
+            if hasattr(self.parent, 'file_watcher') and was_watching:
+                self.parent.file_watcher.addPath(file_path)
             
             if hasattr(self.parent, 'status_label'):
                 self.parent.status_label.setText("자동 저장됨")

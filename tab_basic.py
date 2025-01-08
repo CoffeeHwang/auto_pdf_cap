@@ -163,14 +163,14 @@ class BasicTab(QWidget):
         name_layout.addWidget(name_label)
         name_layout.addWidget(self.file_name_edit)
 
-        # 시작 버튼
-        start_button = QPushButton('시작', self)
-        start_button.clicked.connect(self.main_window.start_process)
+        # 시작/중지 버튼
+        self.btn_start = QPushButton("시작", self)
+        self.btn_start.clicked.connect(self.on_start_button_clicked)
 
         # 레이아웃에 추가
         basic_layout.addLayout(name_layout)
         basic_layout.addLayout(page_loop_layout)
-        basic_layout.addWidget(start_button)
+        basic_layout.addWidget(self.btn_start)
 
         # 로그 표시를 위한 QTextEdit
         self.log_text_edit = QTextEdit(self)
@@ -183,6 +183,15 @@ class BasicTab(QWidget):
         is_checked = bool(state)
         self.settings.setValue('basic/left_first', is_checked)
         print(f"좌측부터 설정이 변경되었습니다: {is_checked}")
+
+    def on_start_button_clicked(self):
+        """시작/중지 버튼 클릭 이벤트 핸들러"""
+        if self.btn_start.text() == "시작":
+            self.btn_start.setText("중지")
+            self.main_window.start_process()
+        else:
+            self.btn_start.setText("시작")
+            self.main_window.stop_process()
 
     def _on_filename_changed(self, text: str):
         """파일명이 변경될 때 호출되는 메서드"""

@@ -251,8 +251,15 @@ class MainWindow(QMainWindow):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(lambda: self.basic_tab.btn_start.setText("시작"))
 
         self.thread.start()
+
+    def stop_process(self):
+        """캡쳐 프로세스를 중지합니다."""
+        if hasattr(self, 'worker'):
+            self.worker.stop()
+            self.log_message("캡쳐를 중지했습니다.")
 
     def create_menu_bar(self):
         """메뉴바 생성 및 설정"""
@@ -273,7 +280,7 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def setup_shortcuts(self):
-        """단축키를 설정합니다."""
-        # 종료 단축키 설정 (macOS에서는 자동으로 Cmd로 변환됨)
-        close_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
+        """단축키 설정"""
+        # 윈도우 닫기 단축키
+        close_shortcut = QShortcut(QKeySequence.StandardKey.Close, self)  # macOS에서는 CMD+W로 동작
         close_shortcut.activated.connect(self.close)

@@ -19,11 +19,13 @@ class WorkerCapture(QObject):
         self.diff_width = diff_width
         self.automation_delay = automation_delay
         self.left_first = left_first
+        self._is_running = False
 
         # 로그 메시지 신호를 메인 윈도우의 log_message 슬롯에 연결
         self.log_message_signal.connect(self.main_window.log_message)
 
     def run(self):
+        self._is_running = True
         auto_pdf_capture(
             file_name=self.file_name,
             page_loop=self.page_loop,
@@ -36,6 +38,11 @@ class WorkerCapture(QObject):
             res=1,
             automation_delay=self.automation_delay,
             left_first=self.left_first,
-            log_message_signal=self.log_message_signal   # type: ignore
+            log_message_signal=self.log_message_signal,   # type: ignore
+            is_running=lambda: self._is_running  # 실행 상태를 확인하는 콜백 함수 전달
         )
         self.finished.emit()
+
+    def stop(self):
+        """캡쳐 프로세스를 중지합니다."""
+        self._is_running = False

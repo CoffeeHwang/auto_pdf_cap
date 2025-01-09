@@ -25,29 +25,71 @@ import sys
 from supa_common import *
 from typing import Callable
 
-def _screenshot(capture_region: tuple, filename: str, index: int):
+
+def _screenshot(*, capture_region: tuple, output_dir: str, filename: str, index: int) -> None:
+    """화면을 캡쳐하여 파일로 저장한다.
+
+    Args:
+        capture_region: 캡쳐할 영역 (x, y, width, height)
+        output_dir: 저장할 디렉토리 경로
+        filename: 파일명
+        index: 파일 인덱스
+    """
+    output_path = os.path.join(output_dir, f"{filename}_{str(index).zfill(4)}.png")
     # noinspection PyTypeChecker
-    pyautogui.screenshot(region=capture_region).save(filename + '_' + str(index).zfill(4) + '.png')
+    pyautogui.screenshot(region=capture_region).save(output_path)
 
 
-def _getFileListAtPath(path: str, ext: str = "") -> list:
-    """특정 경로의 파일 리스트를 반환한다."""
+def _getFileListAtPath(*, directory: str, ext: str = "") -> list[str]:
+    """특정 경로의 파일 리스트를 반환한다.
+
+    Args:
+        directory: 검색할 디렉토리 경로
+        ext: 파일 확장자 (빈 문자열이면 모든 파일)
+
+    Returns:
+        파일 경로 리스트
+    """
     if ext == "":
-        filelist = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+        filelist = [os.path.join(directory, f) for f in os.listdir(directory) 
+                   if os.path.isfile(os.path.join(directory, f))]
     else:
-        filelist = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)) and f.endswith(ext)]
+        filelist = [os.path.join(directory, f) for f in os.listdir(directory) 
+                   if os.path.isfile(os.path.join(directory, f)) and f.endswith(ext)]
     return sorted(filelist, key=lambda x: x)
 
 
 def _open_directory(path):
-    print("_open_directory start")
     if sys.platform == "win32":  # Windows
         os.startfile(path)
     elif sys.platform == "darwin":  # macOS
         subprocess.call(['open', path])
     else:  # Linux 및 기타
         subprocess.call(['xdg-open', path])
-    print("_open_directory end")
+
+
+def _create_pdf(*, output_dir: str, file_name: str, show_log_fn: Callable[[str], None]) -> None:
+    """캡쳐된 이미지들을 PDF로 변환한다.
+
+    Args:
+        output_dir: 이미지 파일이 있는 디렉토리 경로
+        file_name: 생성될 PDF 파일명
+        show_log_fn: 로그 출력 함수
+    """
+    # 이미지 파일 리스트를 가져온다.
+    imagepaths = _getFileListAtPath(directory=output_dir, ext='png')
+
+    images = [Image.open(image).convert('RGB') for image in imagepaths]
+    show_log_fn("pdf 취합중...")
+    
+    pdf_path = os.path.join(output_dir, f'{file_name}.pdf')
+    images[0].save(pdf_path, save_all=True, append_images=images[1:])
+
+    show_log_fn("pdf 취합완료.")
+
+    # PDF 파일 생성 후 폴더 열기
+    _open_directory(output_dir)
+
 
 def auto_pdf_capture(file_name: str, page_loop: int,
                      x1: int, y1: int, x2: int, y2: int,
@@ -123,8 +165,6 @@ def auto_pdf_capture(file_name: str, page_loop: int,
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
-    os.chdir(dir_name)
-
     # --------------------------------------------------------------------
     # 캡쳐 자동화
     # --------------------------------------------------------------------
@@ -133,21 +173,23 @@ def auto_pdf_capture(file_name: str, page_loop: int,
     # 첫 페이지 캡쳐
     capture_region = capture_region_first_page
     show_log(f'\n캡쳐 1 - 표지 {capture_region}')
-    
-    # 중지 요청이 있는지 확인
-    if is_running and not is_running():
-        show_log("\n캡쳐가 중지되었습니다.")
-        return False
-        
-    _screenshot(capture_region, file_name, 1)
+            
+    _screenshot(
+        capture_region=capture_region,
+        output_dir=dir_name,
+        filename=file_name,
+        index=1
+    )
     pyautogui.press("right")
     time.sleep(automation_delay)
 
     # 페이지 수 까지 반복 캡쳐 수행
     for i in range(2, page_loop + 1):
+
         # 중지 요청이 있는지 확인
         if is_running and not is_running():
             show_log("\n캡쳐가 중지되었습니다.")
+            _create_pdf(output_dir=dir_name, file_name=file_name, show_log_fn=show_log)
             return False
 
         # 좌측부터 시작하는 경우와 우측부터 시작하는 경우에 따라 캡쳐 순서를 다르게 처리
@@ -160,40 +202,20 @@ def auto_pdf_capture(file_name: str, page_loop: int,
             which = '좌측 ' if (left_first and i % 2 == 0) or (not left_first and i % 2 != 0) else '우측 '
         else:
             which = ''
-        show_log(f'캡쳐 {i} - {which}{capture_region}')
         
-        # 중지 요청이 있는지 확인
-        if is_running and not is_running():
-            show_log("\n캡쳐가 중지되었습니다.")
-            return False
-            
-        _screenshot(capture_region, file_name, i)
+        show_log(f'캡쳐 {i} - {which}{capture_region}')
+        _screenshot(
+            capture_region=capture_region,
+            output_dir=dir_name,
+            filename=file_name,
+            index=i
+        )
         pyautogui.press("right")
         pyautogui.sleep(automation_delay)  # 페이지 로딩할 시간을 일정시간(초) 부여 해준다. (가끔 로딩이 완료 되지 않은 상태에서 캡쳐가 되면 글자가 뭉개지기 때문.)
 
-    # --------------------------------------------------------------------
-    # 캡쳐 이미지를 pdf 파일로 변환
-    # --------------------------------------------------------------------
-    # 중지 요청이 있는지 확인
-    if is_running and not is_running():
-        show_log("\n캡쳐가 중지되었습니다.")
-        return False
-
-    show_log("\n캡쳐완료. pdf 취합중...")
+    show_log("캡쳐 완료.")
         
-    # 이미지 파일 리스트를 가져온다.
-    imagepaths = _getFileListAtPath(path='./', ext='png')
-
-    images = [Image.open(image).convert('RGB') for image in imagepaths]
-    images[0].save(f'{file_name}.pdf', save_all=True, append_images=images[1:])
-
-    show_log("pdf 취합완료.")
-
-    # PDF 파일 생성 후 폴더 열기
-    _open_directory("./")
-
-    # 작업디렉터리를 상위 디렉터리로 이동
-    os.chdir('..')
+    _create_pdf(output_dir=dir_name, file_name=file_name, show_log_fn=show_log)
 
     show_log('-----------------------------------------------------------')
     show_log(f'총 소요시간: {time.time() - start_time:.2f}초')

@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget,
                            QMenuBar, QMenu, QAction, QShortcut)
 from PyQt5.QtCore import Qt, QRect, QPoint, QThread
 from PyQt5.QtGui import QKeySequence
-from modaless_window import ModalessWindow
+from cap_region_window import CapRegionWindow
 from worker_cap import WorkerCapture
 from tab_basic import BasicTab
 from tab_ocr import OcrTab
@@ -16,9 +16,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings = SupaSettings()  
-        self.modaless_window = None
+        self.cap_region_window = None
         self.initUI()
-        self.create_modaless()  # 시작 시 모달리스 창 생성만 하고 보이지 않게 함
+        self.create_cap_region_window()  # 시작 시 캡처 영역 창 생성만 하고 보이지 않게 함
         self.loadSettings()   # 설정 불러오기
         self.setup_shortcuts()
 
@@ -56,17 +56,6 @@ class MainWindow(QMainWindow):
         if geometry:
             self.restoreGeometry(geometry)
             
-        # SpinBox 값들 불러오기
-        x1 = int(self.settings.value('MainWindow/x1', 0))
-        y1 = int(self.settings.value('MainWindow/y1', 0))
-        x2 = int(self.settings.value('MainWindow/x2', 0))
-        y2 = int(self.settings.value('MainWindow/y2', 0))
-        
-        self.basic_tab.x1_spin.setValue(x1)
-        self.basic_tab.y1_spin.setValue(y1)
-        self.basic_tab.x2_spin.setValue(x2)
-        self.basic_tab.y2_spin.setValue(y2)
-        
         # LineEdit 값들 불러오기
         self.basic_tab.margin_edit.setText(self.settings.value('MainWindow/margin', '0'))
         self.basic_tab.diff_width_edit.setText(self.settings.value('MainWindow/diff_width', '0'))
@@ -76,28 +65,28 @@ class MainWindow(QMainWindow):
         self.basic_tab.opacity_slider.setValue(opacity)
         self.basic_tab.opacity_label.setText(f'투명도: {opacity}%')
         
-        # 모달리스 창 설정 불러오기
-        if self.modaless_window:
+        # 캡처 영역 창 설정 불러오기
+        if self.cap_region_window:
             # 창 위치/크기 복원
-            modaless_geometry = self.settings.value('ModalessWindow/geometry')
-            if modaless_geometry:
-                self.modaless_window.restoreGeometry(modaless_geometry)
+            cap_region_geometry = self.settings.value('CapRegionWindow/geometry')
+            if cap_region_geometry:
+                self.cap_region_window.restoreGeometry(cap_region_geometry)
             
             # 투명도 적용
-            self.modaless_window.setWindowOpacity(opacity / 100.0)
+            self.cap_region_window.setWindowOpacity(opacity / 100.0)
             
             # 저장된 사각형이 있다면 복원
-            if x1 or y1 or x2 or y2:  # 하나라도 0이 아닌 값이 있다면
-                window_pos = self.modaless_window.mapToGlobal(QPoint(0, 0))
+            if self.settings.value('MainWindow/y1') or self.settings.value('MainWindow/x2') or self.settings.value('MainWindow/y2'):  # 하나라도 0이 아닌 값이 있다면
+                window_pos = self.cap_region_window.mapToGlobal(QPoint(0, 0))
                 rect = QRect(
-                    x1 - window_pos.x(),
-                    y1 - window_pos.y(),
-                    x2 - x1,
-                    y2 - y1
+                    0 - window_pos.x(),
+                    int(self.settings.value('MainWindow/y1')) - window_pos.y(),
+                    int(self.settings.value('MainWindow/x2')) - 0,
+                    int(self.settings.value('MainWindow/y2')) - int(self.settings.value('MainWindow/y1'))
                 )
-                self.modaless_window.rectangle = rect
-                self.modaless_window.can_draw = False  # 새로 그리기 방지
-                self.modaless_window.update()
+                self.cap_region_window.rectangle = rect
+                self.cap_region_window.can_draw = False  # 새로 그리기 방지
+                self.cap_region_window.update()
         
         # 기타설정값 불러오기
         self.basic_tab.file_name_edit.setText(self.settings.value('MainWindow/file_name', ''))
@@ -109,12 +98,6 @@ class MainWindow(QMainWindow):
         # 창 위치/크기 저장
         self.settings.setValue('MainWindow/geometry', self.saveGeometry())
         
-        # SpinBox 값들 저장
-        self.settings.setValue('MainWindow/x1', self.basic_tab.x1_spin.value())
-        self.settings.setValue('MainWindow/y1', self.basic_tab.y1_spin.value())
-        self.settings.setValue('MainWindow/x2', self.basic_tab.x2_spin.value())
-        self.settings.setValue('MainWindow/y2', self.basic_tab.y2_spin.value())
-        
         # LineEdit 값들 저장
         self.settings.setValue('MainWindow/margin', self.basic_tab.margin_edit.text())
         self.settings.setValue('MainWindow/diff_width', self.basic_tab.diff_width_edit.text())
@@ -122,10 +105,10 @@ class MainWindow(QMainWindow):
         # 투명도 슬라이더 값 저장
         self.settings.setValue('MainWindow/opacity', self.basic_tab.opacity_slider.value())
         
-        # 모달리스 창 설정 저장
-        if self.modaless_window:
-            self.settings.setValue('ModalessWindow/geometry', 
-                                 self.modaless_window.saveGeometry())
+        # 캡처 영역 창 설정 저장
+        if self.cap_region_window:
+            self.settings.setValue('CapRegionWindow/geometry', 
+                                 self.cap_region_window.saveGeometry())
         
         # 기타설정값 저장
         self.settings.setValue('MainWindow/file_name', self.basic_tab.file_name_edit.text())
@@ -135,95 +118,64 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """프로그램 종료 시 설정 저장"""
         self.saveSettings()
-        if self.modaless_window:
-            self.modaless_window.close()
+        if self.cap_region_window:
+            self.cap_region_window.close()
         event.accept()
 
-    def create_modaless(self):
-        """모달리스 창을 생성만 하고 보이지 않게 함"""
-        if self.modaless_window is None:
-            self.modaless_window = ModalessWindow(parent=self)
+    def create_cap_region_window(self):
+        """캡처 영역 창을 생성만 하고 보이지 않게 함"""
+        if self.cap_region_window is None:
+            self.cap_region_window = CapRegionWindow(parent=self)
             
             # 저장된 투명도 적용
             opacity = self.basic_tab.opacity_slider.value() / 100.0
-            self.modaless_window.setWindowOpacity(opacity)
+            self.cap_region_window.setWindowOpacity(opacity)
             
-            # 저장된 모달리스 창 설정 불러오기
-            modaless_geometry = self.settings.value('ModalessWindow/geometry')
-            if modaless_geometry:
-                self.modaless_window.restoreGeometry(modaless_geometry)
+            # 저장된 캡처 영역 창 설정 불러오기
+            cap_region_geometry = self.settings.value('CapRegionWindow/geometry')
+            if cap_region_geometry:
+                self.cap_region_window.restoreGeometry(cap_region_geometry)
             else:
                 # 기본 위치와 크기 설정
-                self.modaless_window.setGeometry(300, 300, 400, 300)
+                self.cap_region_window.setGeometry(300, 300, 400, 300)
 
-    def show_modaless(self):
-        """모달리스 창을 생성하고 보이게 함"""
-        if self.modaless_window is None:
-            self.create_modaless()
-        self.modaless_window.show()
+    def show_cap_region_window(self):
+        """캡처 영역 창을 생성하고 보이게 함"""
+        if self.cap_region_window is None:
+            self.create_cap_region_window()
+        self.cap_region_window.show()
 
     def change_opacity(self, value):
-        if self.modaless_window is not None:
+        if self.cap_region_window is not None:
             opacity = value / 100.0
-            self.modaless_window.setWindowOpacity(opacity)
+            self.cap_region_window.setWindowOpacity(opacity)
             self.basic_tab.opacity_label.setText(f'투명도: {value}%')
             
     def clear_rectangles(self):
-        if self.modaless_window is not None:
-            self.modaless_window.rectangle = None
-            self.modaless_window.can_draw = True  # 초기화 후 다시 그리기 가능 상태로 변경
-            self.modaless_window.update()
+        if self.cap_region_window is not None:
+            self.cap_region_window.rectangle = None
+            self.cap_region_window.can_draw = True  # 초기화 후 다시 그리기 가능 상태로 변경
+            self.cap_region_window.update()
             
-    def on_coordinate_changed(self):
-        if self.modaless_window and self.modaless_window.rectangle: # type: ignore
-            # 시그널 블록
-            self.basic_tab.x1_spin.blockSignals(True)
-            self.basic_tab.y1_spin.blockSignals(True)
-            self.basic_tab.x2_spin.blockSignals(True)
-            self.basic_tab.y2_spin.blockSignals(True)
-
-            try:
-                # 절대 좌표에서 상대 좌표로 변환
-                window_pos = self.modaless_window.mapToGlobal(QPoint(0, 0))
-                
-                # 새로운 상대 좌표 계산
-                new_rect = QRect(
-                    self.basic_tab.x1_spin.value() - window_pos.x(),
-                    self.basic_tab.y1_spin.value() - window_pos.y(),
-                    self.basic_tab.x2_spin.value() - self.basic_tab.x1_spin.value(),
-                    self.basic_tab.y2_spin.value() - self.basic_tab.y1_spin.value()
-                )
-                
-                # 사각형 업데이트
-                self.modaless_window.rectangle = new_rect
-                self.modaless_window.update()
-            
-            finally:
-                # 시그널 언블록
-                self.basic_tab.x1_spin.blockSignals(False)
-                self.basic_tab.y1_spin.blockSignals(False)
-                self.basic_tab.x2_spin.blockSignals(False)
-                self.basic_tab.y2_spin.blockSignals(False)
-
     def on_margin_changed(self):
-        """Margin 값이 변경될 때 모달리스 창 업데이트"""
-        if self.modaless_window:
-            self.modaless_window.update()
+        """Margin 값이 변경될 때 캡처 영역 창 업데이트"""
+        if self.cap_region_window:
+            self.cap_region_window.update()
 
     def on_diff_width_changed(self):
-        """Diff Width 값이 변경될 때 모달리스 창 업데이트"""
-        if self.modaless_window:
-            self.modaless_window.update()
+        """Diff Width 값이 변경될 때 캡처 영역 창 업데이트"""
+        if self.cap_region_window:
+            self.cap_region_window.update()
 
-    def toggle_modaless(self):
-        """모달리스 창 보이기/숨기기 토글"""
-        if self.modaless_window is None:
-            self.show_modaless()
+    def toggle_cap_region_window(self):
+        """캡처 영역 창 보이기/숨기기 토글"""
+        if self.cap_region_window is None:
+            self.show_cap_region_window()
         else:
-            if self.modaless_window.isVisible():
-                self.modaless_window.hide()
+            if self.cap_region_window.isVisible():
+                self.cap_region_window.hide()
             else:
-                self.modaless_window.show()
+                self.cap_region_window.show()
 
     def log_message(self, message):
         """로그 메시지를 추가하는 메서드"""
@@ -231,16 +183,16 @@ class MainWindow(QMainWindow):
         self.basic_tab.log_text_edit.verticalScrollBar().setValue(self.basic_tab.log_text_edit.verticalScrollBar().maximum()) # type: ignore
 
     def start_process(self):
-        self.modaless_window.hide() # type: ignore
+        self.cap_region_window.hide() # type: ignore
         # QThread를 사용하여 auto_pdf_capture를 비동기로 실행
         self.thread = QThread() # type: ignore
         self.worker = WorkerCapture(self,
                              self.basic_tab.file_name_edit.text(), 
                              int(self.basic_tab.page_loop_edit.text()),
-                             int(self.basic_tab.x1_spin.value()), 
-                             int(self.basic_tab.y1_spin.value()),
-                             int(self.basic_tab.x2_spin.value()), 
-                             int(self.basic_tab.y2_spin.value()),
+                             0, 
+                             int(self.settings.value('MainWindow/y1')),
+                             int(self.settings.value('MainWindow/x2')), 
+                             int(self.settings.value('MainWindow/y2')),
                              int(self.basic_tab.margin_edit.text()), 
                              int(self.basic_tab.diff_width_edit.text()),
                              float(self.basic_tab.delay_edit.text()),
@@ -284,3 +236,5 @@ class MainWindow(QMainWindow):
         # 윈도우 닫기 단축키
         close_shortcut = QShortcut(QKeySequence.StandardKey.Close, self)  # macOS에서는 CMD+W로 동작
         close_shortcut.activated.connect(self.close)
+
+# end of file

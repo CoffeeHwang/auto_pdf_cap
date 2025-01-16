@@ -4,25 +4,26 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget,
 from PyQt5.QtCore import Qt, QRect, QPoint, QTimer, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QPainter, QPen, QColor, QCursor
 from supa_settings import SupaSettings
+from supa_common import log
 
 
-class ModalessWindow(QWidget):
+class CapRegionWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent, Qt.Window | Qt.WindowStaysOnTopHint) # type: ignore
-        self.initUI()
         self.begin = None
         self.end = None
         self.is_drawing = False
         self.is_moving = False
         self.is_resizing = False
         self.resize_position = None
-        self.rectangle = None
+        self.cap_region_rect = None
         self.can_draw = True
         self.drag_start_pos = None
         self.rect_start = None
         self.corner_size = 10
         self.main_window = parent
         self.min_size = 100
+        self.initUI()
         
     def initUI(self):
         self.setWindowTitle('캡쳐영역 가이드')
@@ -31,11 +32,11 @@ class ModalessWindow(QWidget):
         
     def paintEvent(self, event):
         painter = QPainter(self)
-        
-        if self.rectangle is not None:  # None 체크 추가
+
+        if self.cap_region_rect is not None:  # None 체크 추가
             # 기존 흰색 사각형 그리기
             painter.setPen(QPen(QColor(255, 255, 255), 2))
-            painter.drawRect(self.rectangle)
+            painter.drawRect(self.cap_region_rect)
             
             # Margin이 설정된 경우 녹색 사각형 그리기
             if self.main_window and self.main_window.basic_tab.margin_edit.text():
@@ -44,10 +45,10 @@ class ModalessWindow(QWidget):
                     if margin > 0:
                         painter.setPen(QPen(QColor(0, 255, 0), 1))
                         margin_rect = QRect(
-                            self.rectangle.x() - margin,
-                            self.rectangle.y() - margin,
-                            self.rectangle.width() + (margin * 2),
-                            self.rectangle.height() + (margin * 2)
+                            self.cap_region_rect.x() - margin,
+                            self.cap_region_rect.y() - margin,
+                            self.cap_region_rect.width() + (margin * 2),
+                            self.cap_region_rect.height() + (margin * 2)
                         )
                         painter.drawRect(margin_rect)
                 except ValueError:
@@ -64,12 +65,12 @@ class ModalessWindow(QWidget):
                         painter.setPen(pen)
                         
                         # 시작점: 왼쪽 변에서 diff_width 만큼 떨어진 x좌표
-                        x = self.rectangle.left() + diff_width
+                        x = self.cap_region_rect.left() + diff_width
                         
                         # 사각형 내부에 수직선 그리기
-                        if x <= self.rectangle.right():  # 사각형 내부에 있을 때만 그리기
-                            painter.drawLine(x, self.rectangle.top(), 
-                                          x, self.rectangle.bottom())
+                        if x <= self.cap_region_rect.right():  # 사각형 내부에 있을 때만 그리기
+                            painter.drawLine(x, self.cap_region_rect.top(), 
+                                          x, self.cap_region_rect.bottom())
                         
                 except ValueError:
                     pass
@@ -80,40 +81,40 @@ class ModalessWindow(QWidget):
             painter.drawRect(rect)
     
     def get_edge_or_corner_at(self, pos):
-        if self.rectangle is None:
+        if self.cap_region_rect is None:
             return None
             
         # 모서리 영역 정의
         corners = {
-            'top_left': QRect(self.rectangle.topLeft(), QPoint(
-                self.rectangle.topLeft().x() + self.corner_size,
-                self.rectangle.topLeft().y() + self.corner_size)),
+            'top_left': QRect(self.cap_region_rect.topLeft(), QPoint(
+                self.cap_region_rect.topLeft().x() + self.corner_size,
+                self.cap_region_rect.topLeft().y() + self.corner_size)),
             'top_right': QRect(
-                QPoint(self.rectangle.topRight().x() - self.corner_size, self.rectangle.topRight().y()),
-                QPoint(self.rectangle.topRight().x(), self.rectangle.topRight().y() + self.corner_size)),
+                QPoint(self.cap_region_rect.topRight().x() - self.corner_size, self.cap_region_rect.topRight().y()),
+                QPoint(self.cap_region_rect.topRight().x(), self.cap_region_rect.topRight().y() + self.corner_size)),
             'bottom_left': QRect(
-                QPoint(self.rectangle.bottomLeft().x(), self.rectangle.bottomLeft().y() - self.corner_size),
-                QPoint(self.rectangle.bottomLeft().x() + self.corner_size, self.rectangle.bottomLeft().y())),
+                QPoint(self.cap_region_rect.bottomLeft().x(), self.cap_region_rect.bottomLeft().y() - self.corner_size),
+                QPoint(self.cap_region_rect.bottomLeft().x() + self.corner_size, self.cap_region_rect.bottomLeft().y())),
             'bottom_right': QRect(
-                QPoint(self.rectangle.bottomRight().x() - self.corner_size, 
-                      self.rectangle.bottomRight().y() - self.corner_size),
-                self.rectangle.bottomRight())
+                QPoint(self.cap_region_rect.bottomRight().x() - self.corner_size, 
+                      self.cap_region_rect.bottomRight().y() - self.corner_size),
+                self.cap_region_rect.bottomRight())
         }
         
         # 변 영역 정의
         edges = {
             'top': QRect(
-                QPoint(self.rectangle.left() + self.corner_size, self.rectangle.top()),
-                QPoint(self.rectangle.right() - self.corner_size, self.rectangle.top() + self.corner_size)),
+                QPoint(self.cap_region_rect.left() + self.corner_size, self.cap_region_rect.top()),
+                QPoint(self.cap_region_rect.right() - self.corner_size, self.cap_region_rect.top() + self.corner_size)),
             'bottom': QRect(
-                QPoint(self.rectangle.left() + self.corner_size, self.rectangle.bottom() - self.corner_size),
-                QPoint(self.rectangle.right() - self.corner_size, self.rectangle.bottom())),
+                QPoint(self.cap_region_rect.left() + self.corner_size, self.cap_region_rect.bottom() - self.corner_size),
+                QPoint(self.cap_region_rect.right() - self.corner_size, self.cap_region_rect.bottom())),
             'left': QRect(
-                QPoint(self.rectangle.left(), self.rectangle.top() + self.corner_size),
-                QPoint(self.rectangle.left() + self.corner_size, self.rectangle.bottom() - self.corner_size)),
+                QPoint(self.cap_region_rect.left(), self.cap_region_rect.top() + self.corner_size),
+                QPoint(self.cap_region_rect.left() + self.corner_size, self.cap_region_rect.bottom() - self.corner_size)),
             'right': QRect(
-                QPoint(self.rectangle.right() - self.corner_size, self.rectangle.top() + self.corner_size),
-                QPoint(self.rectangle.right(), self.rectangle.bottom() - self.corner_size))
+                QPoint(self.cap_region_rect.right() - self.corner_size, self.cap_region_rect.top() + self.corner_size),
+                QPoint(self.cap_region_rect.right(), self.cap_region_rect.bottom() - self.corner_size))
         }
         
         # 모서리 확인
@@ -140,26 +141,32 @@ class ModalessWindow(QWidget):
         return Qt.CursorShape.ArrowCursor
 
     def mouseMoveEvent(self, event):
+        """
+        마우스가 움직일 때 호출되는 함수. 사각형을 그리고 있는 중이거나, 사각형을
+        이동시키거나, 사각형을 크기 조정 중이라면 적절한 처리를 수행합니다.
+        
+        Parameters
+        ----------
+        event : QMouseEvent
+            마우스 이벤트
+        """
         if self.is_drawing and self.can_draw:
             self.end = event.pos()
             if self.begin and self.end:
                 temp_rect = QRect(self.begin, self.end).normalized()
                 if temp_rect.width() >= self.min_size and temp_rect.height() >= self.min_size:
-                    absolute_rect = self.get_absolute_coordinates(temp_rect)
-                    if self.main_window and absolute_rect is not None:
-                        self.main_window.basic_tab.x1_spin.setValue(absolute_rect.left())
-                        self.main_window.basic_tab.y1_spin.setValue(absolute_rect.top())
-                        self.main_window.basic_tab.x2_spin.setValue(absolute_rect.right())
-                        self.main_window.basic_tab.y2_spin.setValue(absolute_rect.bottom())
+                    if self.cap_region_rect is not None:
+                        self.save_rectangle_settings()
             self.update()
-        elif self.is_moving and self.rectangle and self.rect_start: # type: ignore
+        elif self.is_moving and self.cap_region_rect and self.rect_start: # type: ignore
             delta = event.pos() - self.drag_start_pos
-            self.rectangle = QRect(self.rect_start)
-            self.rectangle.translate(delta)
-            self.update_parent_coordinates()
+            self.cap_region_rect = QRect(self.rect_start)
+            self.cap_region_rect.translate(delta)
+            if self.cap_region_rect is not None:
+                self.save_rectangle_settings()
             self.update()
-        elif self.is_resizing and self.rectangle and self.rect_start: # type: ignore
-            new_rect = QRect(self.rectangle)
+        elif self.is_resizing and self.cap_region_rect and self.rect_start: # type: ignore
+            new_rect = QRect(self.cap_region_rect)
             
             if self.resize_position == 'top_left':
                 new_rect = QRect(event.pos(), self.rect_start.bottomRight())
@@ -200,16 +207,17 @@ class ModalessWindow(QWidget):
                 )
             
             new_rect = self.ensure_minimum_size(new_rect.normalized())
-            self.rectangle = new_rect
+            self.cap_region_rect = new_rect
             
-            self.update_parent_coordinates()
+            if self.cap_region_rect is not None:
+                self.save_rectangle_settings()
             self.update()
         else:
             # 마우스 커서 업데이트
             position = self.get_edge_or_corner_at(event.pos())
             if position:
                 self.setCursor(self.get_cursor_for_position(position))
-            elif self.rectangle and self.rectangle.contains(event.pos()): # type: ignore
+            elif self.cap_region_rect and self.cap_region_rect.contains(event.pos()): # type: ignore
                 self.setCursor(Qt.CursorShape.SizeAllCursor)
             else:
                 self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -217,19 +225,19 @@ class ModalessWindow(QWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             position = self.get_edge_or_corner_at(event.pos())
-            if position and self.rectangle: # type: ignore
+            if position and self.cap_region_rect: # type: ignore
                 self.is_resizing = True
                 self.resize_position = position
                 self.drag_start_pos = event.pos()
-                self.rect_start = QRect(self.rectangle)  # 현재 사각형 상태 저장
+                self.rect_start = QRect(self.cap_region_rect)  # 현재 사각형 상태 저장
             elif self.can_draw:
                 self.begin = event.pos()
                 self.end = self.begin
                 self.is_drawing = True
-            elif self.rectangle and self.rectangle.contains(event.pos()): # type: ignore
+            elif self.cap_region_rect and self.cap_region_rect.contains(event.pos()): # type: ignore
                 self.is_moving = True
                 self.drag_start_pos = event.pos()
-                self.rect_start = QRect(self.rectangle)  # QPoint 대신 QRect로 저장
+                self.rect_start = QRect(self.cap_region_rect)  # QPoint 대신 QRect로 저장
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -238,11 +246,12 @@ class ModalessWindow(QWidget):
                 if self.begin and self.end:
                     temp_rect = QRect(self.begin, self.end).normalized()
                     if temp_rect.width() >= self.min_size and temp_rect.height() >= self.min_size:
-                        self.rectangle = temp_rect
+                        self.cap_region_rect = temp_rect
                         self.begin = None
                         self.end = None
                         self.can_draw = False
-                        self.update_parent_coordinates()
+                        if self.cap_region_rect is not None:
+                            self.save_rectangle_settings()
                     else:
                         self.begin = None
                         self.end = None
@@ -251,50 +260,10 @@ class ModalessWindow(QWidget):
             self.resize_position = None
             self.update()
 
-    def update_parent_coordinates(self):
-        if self.main_window and self.rectangle: # type: ignore
-            absolute_rect = self.get_absolute_coordinates(self.rectangle)
-            if absolute_rect: # type: ignore
-                # SpinBox 업데이트
-                self.main_window.basic_tab.x1_spin.blockSignals(True)
-                self.main_window.basic_tab.y1_spin.blockSignals(True)
-                self.main_window.basic_tab.x2_spin.blockSignals(True)
-                self.main_window.basic_tab.y2_spin.blockSignals(True)
-                
-                try:
-                    # 뷰포트 기준 좌표 업데이트
-                    self.main_window.basic_tab.x1_spin.setValue(absolute_rect.left())
-                    self.main_window.basic_tab.y1_spin.setValue(absolute_rect.top())
-                    self.main_window.basic_tab.x2_spin.setValue(absolute_rect.right())
-                    self.main_window.basic_tab.y2_spin.setValue(absolute_rect.bottom())
-                    
-                finally:
-                    # 모든 시그널 언블록
-                    self.main_window.basic_tab.x1_spin.blockSignals(False)
-                    self.main_window.basic_tab.y1_spin.blockSignals(False)
-                    self.main_window.basic_tab.x2_spin.blockSignals(False)
-                    self.main_window.basic_tab.y2_spin.blockSignals(False)
-
-    def get_absolute_coordinates(self, rect):
-        if not rect:
-            return None
-            
-        # 윈도우의 절대 위치 얻기
-        window_pos = self.mapToGlobal(QPoint(0, 0))
-        
-        # 사각형의 상대 좌표를 절대 좌표로 변환
-        absolute_rect = QRect(
-            window_pos.x() + rect.left(),
-            window_pos.y() + rect.top(),
-            rect.width(),
-            rect.height()
-        )
-        return absolute_rect
-
     def moveEvent(self, event):
-        # 창이 이동할 때마다 좌표 업데이트
         super().moveEvent(event)
-        self.update_parent_coordinates()
+        if self.cap_region_rect is not None:
+            self.save_rectangle_settings()
 
     def ensure_minimum_size(self, new_rect):
         """사각형이 최소 크기 이상을 유지하도록 보장"""
@@ -314,6 +283,7 @@ class ModalessWindow(QWidget):
 
     def closeEvent(self, event):
         """모달리스 창이 닫힐 때 설정 저장"""
+        self.save_rectangle_settings()
         if isinstance(self.parent(), self.main_window.__class__):
             self.parent().saveSettings() # type: ignore
         event.accept()
@@ -344,6 +314,7 @@ class ModalessWindow(QWidget):
             self.setGeometry(geometry)
             # 창 위치가 비정상적인지 확인하고 필요한 경우 중앙으로 이동
             self.moveToCenter()
+        self.load_rectangle_settings()
 
     def keyPressEvent(self, event):
         """키 입력 이벤트를 처리합니다."""
@@ -351,3 +322,21 @@ class ModalessWindow(QWidget):
             self.hide()
         else:
             super().keyPressEvent(event)
+
+    def save_rectangle_settings(self):
+        if self.cap_region_rect:
+            settings = SupaSettings()
+            settings.setValue('cap_region_rect/x', self.cap_region_rect.x())
+            settings.setValue('cap_region_rect/y', self.cap_region_rect.y())
+            settings.setValue('cap_region_rect/width', self.cap_region_rect.width())
+            settings.setValue('cap_region_rect/height', self.cap_region_rect.height())
+
+    def load_rectangle_settings(self):
+        settings = SupaSettings()
+        x = int(settings.value('cap_region_rect/x', 0))
+        y = int(settings.value('cap_region_rect/y', 0))
+        width = int(settings.value('cap_region_rect/width', 0))
+        height = int(settings.value('cap_region_rect/height', 0))
+        if x != 0 and y != 0 and width != 0 and height != 0:
+            self.cap_region_rect = QRect(x, y, width, height)
+            self.update()

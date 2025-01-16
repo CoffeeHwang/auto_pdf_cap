@@ -38,7 +38,7 @@ class BasicTab(QWidget):
 
         # 모달리스 창 보이기/숨기기 토글 버튼
         self.toggle_modaless_button = QPushButton('캡쳐영역 가이드', self)
-        self.toggle_modaless_button.clicked.connect(self.main_window.toggle_modaless)
+        self.toggle_modaless_button.clicked.connect(self.main_window.toggle_cap_region_window)
         basic_layout.addWidget(self.toggle_modaless_button)
         
         clear_button = QPushButton('캡쳐영역 재설정', self)
@@ -105,50 +105,7 @@ class BasicTab(QWidget):
         param_layout.addLayout(left_first_layout)
         param_group.setLayout(param_layout)
         
-        # 뷰포트 기준 좌표 그룹
-        coord_group = QGroupBox("캡쳐영역 좌표 설정")
-        coord_layout = QHBoxLayout()
-        
-        x1_layout = QVBoxLayout()
-        x1_label = QLabel('X1:', self)
-        self.x1_spin = QSpinBox(self)
-        self.x1_spin.setRange(0, 9999)
-        self.x1_spin.valueChanged.connect(self.main_window.on_coordinate_changed)
-        x1_layout.addWidget(x1_label)
-        x1_layout.addWidget(self.x1_spin)
-        
-        y1_layout = QVBoxLayout()
-        y1_label = QLabel('Y1:', self)
-        self.y1_spin = QSpinBox(self)
-        self.y1_spin.setRange(0, 9999)
-        self.y1_spin.valueChanged.connect(self.main_window.on_coordinate_changed)
-        y1_layout.addWidget(y1_label)
-        y1_layout.addWidget(self.y1_spin)
-        
-        x2_layout = QVBoxLayout()
-        x2_label = QLabel('X2:', self)
-        self.x2_spin = QSpinBox(self)
-        self.x2_spin.setRange(0, 9999)
-        self.x2_spin.valueChanged.connect(self.main_window.on_coordinate_changed)
-        x2_layout.addWidget(x2_label)
-        x2_layout.addWidget(self.x2_spin)
-        
-        y2_layout = QVBoxLayout()
-        y2_label = QLabel('Y2:', self)
-        self.y2_spin = QSpinBox(self)
-        self.y2_spin.setRange(0, 9999)
-        self.y2_spin.valueChanged.connect(self.main_window.on_coordinate_changed)
-        y2_layout.addWidget(y2_label)
-        y2_layout.addWidget(self.y2_spin)
-        
-        coord_layout.addLayout(x1_layout)
-        coord_layout.addLayout(y1_layout)
-        coord_layout.addLayout(x2_layout)
-        coord_layout.addLayout(y2_layout)
-        coord_group.setLayout(coord_layout)
-        
         # 메인 레이아웃에 그룹 추가
-        basic_layout.addWidget(coord_group)
         basic_layout.addSpacing(10)
         basic_layout.addWidget(param_group)
         basic_layout.addSpacing(10)

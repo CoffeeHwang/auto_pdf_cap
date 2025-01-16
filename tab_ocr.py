@@ -283,3 +283,5 @@ class OcrTab(QWidget):
         # 스캔 버튼 상태 복원
         self.scan_button.setEnabled(True)
         self.scan_button.setText("OCR 스캔")
+
+# end of file

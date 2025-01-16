@@ -139,3 +139,5 @@ class CustomTextEdit(QTextEdit):
             return
             
         super().keyPressEvent(event)
+
+# end of file

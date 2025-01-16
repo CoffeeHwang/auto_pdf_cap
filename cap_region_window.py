@@ -340,3 +340,5 @@ class CapRegionWindow(QWidget):
         if x != 0 and y != 0 and width != 0 and height != 0:
             self.cap_region_rect = QRect(x, y, width, height)
             self.update()
+
+# end of file

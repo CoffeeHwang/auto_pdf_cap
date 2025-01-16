@@ -27,3 +27,5 @@ class WorkerOcr(QThread):
             self.finished.emit(ocr_lines)
         except Exception as e:
             self.error.emit(str(e))
+
+# end of file

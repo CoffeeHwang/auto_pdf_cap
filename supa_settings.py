@@ -21,3 +21,5 @@ class SupaSettings(QSettings):
 
     def setValue(self, key: str, value: Any) -> None:
         self.settings.setValue(key, value)
+
+# end of file

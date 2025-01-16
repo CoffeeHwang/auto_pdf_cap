@@ -159,3 +159,5 @@ class BasicTab(QWidget):
         """타이머가 만료되면 현재 파일명으로 시그널 발생"""
         current_filename = self.file_name_edit.text()
         self.filename_changed.emit(current_filename)
+
+# end of file

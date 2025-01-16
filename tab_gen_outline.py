@@ -412,3 +412,5 @@ class GenOutlineTab(QWidget):
             subprocess.run(["open", "-R", self.current_file_path])
         except Exception as e:
             QMessageBox.critical(self, "오류", f"파일 위치를 열 수 없습니다: {str(e)}")
+
+# end of file

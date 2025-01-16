@@ -46,3 +46,5 @@ class WorkerCapture(QObject):
     def stop(self):
         """캡쳐 프로세스를 중지합니다."""
         self._is_running = False
+
+# end of file

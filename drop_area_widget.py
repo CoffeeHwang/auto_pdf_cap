@@ -46,3 +46,5 @@ class DropAreaWidget(QLabel):
             if file_ext in self.accept_extensions:
                 self.file_path = file_path
                 self.update_text()
+
+# end of file

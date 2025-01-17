@@ -17,7 +17,7 @@ class CapRegionWindow(QWidget):
         self.is_resizing = False
         self.resize_position = None
         self.cap_region_rect = None
-        self.can_draw = True
+        self.can_draw = False
         self.drag_start_pos = None
         self.rect_start = None
         self.corner_size = 10
@@ -150,24 +150,34 @@ class CapRegionWindow(QWidget):
         event : QMouseEvent
             마우스 이벤트
         """
+        # 마우스가 움직이는 중에 사각형을 그리고 있다면
         if self.is_drawing and self.can_draw:
             self.end = event.pos()
+            # 마우스가 움직이는 중에 사각형을 그리고 있는 경우, 
+            # 사각형의 크기가 최소 크기 이상이 되면 이를 저장
             if self.begin and self.end:
                 temp_rect = QRect(self.begin, self.end).normalized()
                 if temp_rect.width() >= self.min_size and temp_rect.height() >= self.min_size:
                     if self.cap_region_rect is not None:
                         self.save_rectangle_settings()
             self.update()
+            
+        # 마우스가 움직이는 중에 사각형을 이동시키고 있다면
         elif self.is_moving and self.cap_region_rect and self.rect_start: # type: ignore
             delta = event.pos() - self.drag_start_pos
             self.cap_region_rect = QRect(self.rect_start)
             self.cap_region_rect.translate(delta)
+            # 마우스가 움직이는 중에 사각형을 이동시키는 경우, 
+            # 사각형의 크기가 최소 크기 이상이 되면 이를 저장
             if self.cap_region_rect is not None:
                 self.save_rectangle_settings()
             self.update()
+            
+        # 마우스가 움직이는 중에 사각형을 크기 조정하고 있다면
         elif self.is_resizing and self.cap_region_rect and self.rect_start: # type: ignore
             new_rect = QRect(self.cap_region_rect)
             
+            # 크기 조정하는 경우, 크기 조정 방향에 따라 적절한 처리를 수행
             if self.resize_position == 'top_left':
                 new_rect = QRect(event.pos(), self.rect_start.bottomRight())
             elif self.resize_position == 'top_right':
@@ -206,9 +216,9 @@ class CapRegionWindow(QWidget):
                     QPoint(event.pos().x(), self.rect_start.bottom())
                 )
             
+            # 크기 조정하는 경우, 크기가 최소 크기 이상이 되면 이를 저장
             new_rect = self.ensure_minimum_size(new_rect.normalized())
             self.cap_region_rect = new_rect
-            
             if self.cap_region_rect is not None:
                 self.save_rectangle_settings()
             self.update()

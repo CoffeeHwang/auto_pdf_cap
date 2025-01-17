@@ -204,9 +204,9 @@ class BasicTab(QWidget):
         basic_layout.addWidget(clear_button)        
         basic_layout.addSpacing(15)
 
-        # 파라미터 그룹
-        param_group = QGroupBox("기타 설정값")
-        param_layout = QHBoxLayout()
+        # 캡쳐영역 설정값 그룹
+        cap_region_group = QGroupBox('캡쳐영역 설정값', self)
+        cap_region_layout = QVBoxLayout()
         
         # margin LineEdit
         margin_layout = QHBoxLayout()
@@ -217,6 +217,7 @@ class BasicTab(QWidget):
         self.margin_edit.textChanged.connect(self.on_margin_changed)
         margin_layout.addWidget(margin_label)
         margin_layout.addWidget(self.margin_edit)
+        cap_region_layout.addLayout(margin_layout)
         
         # diff_width LineEdit
         diff_width_layout = QHBoxLayout()
@@ -227,49 +228,18 @@ class BasicTab(QWidget):
         self.diff_width_edit.textChanged.connect(self.on_diff_width_changed)
         diff_width_layout.addWidget(diff_width_label)
         diff_width_layout.addWidget(self.diff_width_edit)
-
-        # page_loop LineEdit
-        page_loop_layout = QVBoxLayout()
-        page_loop_label = QLabel('Page Loop', self)
-        page_loop_label.setToolTip('캡쳐 반복 횟수 (캡쳐 페이지수)')
-        self.page_loop_edit = QLineEdit(self)
-        page_loop_layout.addWidget(page_loop_label)
-        page_loop_layout.addWidget(self.page_loop_edit)
-
-        # delay LineEdit
-        delay_layout = QVBoxLayout()
-        delay_label = QLabel('Delay(초)', self)
-        delay_label.setToolTip('각 페이지 캡쳐 사이의 지연 시간 (초 단위)')
-        self.delay_edit = QLineEdit(self)
-        self.delay_edit.setText('0.2')
-        delay_layout.addWidget(delay_label)
-        delay_layout.addWidget(self.delay_edit)
-
-        # 좌측부터 스위치
-        left_first_layout = QVBoxLayout()
-        left_first_label = QLabel('좌측부터', self)
-        left_first_label.setToolTip('캡쳐 순서를 좌측부터 시작할지 여부를 설정합니다.')
-        self.left_first_check = QCheckBox(self)
-        self.left_first_check.setChecked(self.settings.value('basic/left_first', True))
-        self.left_first_check.stateChanged.connect(self.on_left_first_changed)
-        left_first_layout.addWidget(left_first_label)
-        left_first_layout.addWidget(self.left_first_check)
+        cap_region_layout.addLayout(diff_width_layout)
         
-        # 파라미터 레이아웃에 추가
-        param_layout.addLayout(margin_layout)
-        param_layout.addLayout(diff_width_layout)
-        param_layout.addLayout(page_loop_layout)
-        param_layout.addLayout(delay_layout)
-        param_layout.addLayout(left_first_layout)
-        param_group.setLayout(param_layout)
-        
-        # 메인 레이아웃에 그룹 추가
-        basic_layout.addSpacing(10)
-        basic_layout.addWidget(param_group)
-        basic_layout.addSpacing(10)
-        
+        cap_region_group.setLayout(cap_region_layout)
+        basic_layout.addWidget(cap_region_group)
+        basic_layout.addSpacing(15)
+
+        # 기타 설정값 그룹
+        param_group = QGroupBox('기타 설정값', self)
+        param_layout = QVBoxLayout()
+
         # file_name LineEdit
-        name_layout = QVBoxLayout()
+        name_layout = QHBoxLayout()
         name_label = QLabel('File Name', self)
         name_label.setToolTip('생성될 pdf 파일명\n예) 실전에서 바로쓰는 훈민정음 (세종 저) - 조선출판')
         self.file_name_edit = QLineEdit(self)
@@ -277,14 +247,41 @@ class BasicTab(QWidget):
         self.file_name_edit.textChanged.connect(self._on_filename_changed)
         name_layout.addWidget(name_label)
         name_layout.addWidget(self.file_name_edit)
+        param_layout.addLayout(name_layout)
+
+        # page_loop LineEdit
+        loop_layout = QHBoxLayout()
+        loop_label = QLabel('Page Loop', self)
+        loop_label.setToolTip('반복할 페이지 수')
+        self.page_loop_edit = QLineEdit(self)
+        self.page_loop_edit.setPlaceholderText('0')
+        loop_layout.addWidget(loop_label)
+        loop_layout.addWidget(self.page_loop_edit)
+        param_layout.addLayout(loop_layout)
+
+        # delay LineEdit
+        delay_layout = QHBoxLayout()
+        delay_label = QLabel('Delay', self)
+        delay_label.setToolTip('캡쳐 사이 딜레이(초)')
+        self.delay_edit = QLineEdit(self)
+        self.delay_edit.setPlaceholderText('0')
+        delay_layout.addWidget(delay_label)
+        delay_layout.addWidget(self.delay_edit)
+        param_layout.addLayout(delay_layout)
+
+        # 좌측부터 체크박스
+        self.left_first_check = QCheckBox('좌측부터', self)
+        self.left_first_check.setToolTip('체크하면 좌측 페이지부터 캡쳐')
+        self.left_first_check.stateChanged.connect(self.on_left_first_changed)
+        param_layout.addWidget(self.left_first_check)
+
+        param_group.setLayout(param_layout)
+        basic_layout.addWidget(param_group)
+        basic_layout.addSpacing(10)
 
         # 시작/중지 버튼
         self.btn_start = QPushButton("시작", self)
         self.btn_start.clicked.connect(self.on_start_button_clicked)
-
-        # 레이아웃에 추가
-        basic_layout.addLayout(name_layout)
-        basic_layout.addLayout(page_loop_layout)
         basic_layout.addWidget(self.btn_start)
 
         # 로그 표시를 위한 QTextEdit

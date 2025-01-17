@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QSlider, 
                            QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit,
-                           QCheckBox)
+                           QCheckBox, QGridLayout, QSizePolicy)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from supa_settings import SupaSettings
 from cap_region_window import CapRegionWindow  # 추가
@@ -116,9 +116,39 @@ class BasicTab(QWidget):
         """투명도 슬라이더 값이 변경될 때 호출되는 메서드"""
         self.setOpacity(value)
 
+    def getOpacity(self) -> int:
+        """현재 투명도 값 반환"""
+        return self.opacity_slider.value()
+
+    def getMargins(self) -> dict[str, int]:
+        """현재 margin 값들을 반환
+        
+        Returns:
+            dict[str, int]: margin 값들을 담은 딕셔너리
+                - top: 상단 여백
+                - bottom: 하단 여백
+                - right: 우측 여백
+                - left: 좌측 여백
+        """
+        return {
+            "top": int(self.margin_top_edit.text() or '0'),
+            "right": int(self.margin_right_edit.text() or '0'),
+            "bottom": int(self.margin_bottom_edit.text() or '0'),
+            "left": int(self.margin_left_edit.text() or '0')
+        }
+
+    def on_margin_changed(self):
+        """Margin 값이 변경될 때 캡처 영역 창 업데이트"""
+        if self.cap_region_window:
+            self.cap_region_window.update()
+
     def loadSettings(self):
         """저장된 설정 불러오기"""
-        self.margin_edit.setText(self.settings.value('MainWindow/margin', '0'))
+        self.margin_top_edit.setText(self.settings.value('MainWindow/margin_top', '0'))
+        self.margin_right_edit.setText(self.settings.value('MainWindow/margin_right', '0'))
+        self.margin_bottom_edit.setText(self.settings.value('MainWindow/margin_bottom', '0'))
+        self.margin_left_edit.setText(self.settings.value('MainWindow/margin_left', '0'))
+        
         self.diff_width_edit.setText(self.settings.value('MainWindow/diff_width', '0'))
         
         # 투명도 슬라이더 값 불러오기
@@ -132,7 +162,11 @@ class BasicTab(QWidget):
         
     def saveSettings(self):
         """현재 설정 저장"""
-        self.settings.setValue('MainWindow/margin', self.margin_edit.text())
+        self.settings.setValue('MainWindow/margin_top', self.margin_top_edit.text())
+        self.settings.setValue('MainWindow/margin_right', self.margin_right_edit.text())
+        self.settings.setValue('MainWindow/margin_bottom', self.margin_bottom_edit.text())
+        self.settings.setValue('MainWindow/margin_left', self.margin_left_edit.text())
+        
         self.settings.setValue('MainWindow/diff_width', self.diff_width_edit.text())
         self.settings.setValue('MainWindow/opacity', self.opacity_slider.value())
         self.settings.setValue('MainWindow/file_name', self.file_name_edit.text())
@@ -143,10 +177,6 @@ class BasicTab(QWidget):
         if self.cap_region_window:
             self.settings.setValue('CapRegionWindow/geometry', 
                                  self.cap_region_window.saveGeometry())
-        
-    def getOpacity(self) -> int:
-        """현재 투명도 값 반환"""
-        return self.opacity_slider.value()
         
     def getMargin(self) -> str:
         """현재 margin 값 반환"""
@@ -168,23 +198,15 @@ class BasicTab(QWidget):
         """현재 delay 값 반환"""
         return self.delay_edit.text()
 
-    def on_margin_changed(self):
-        """Margin 값이 변경될 때 캡처 영역 창 업데이트"""
-        if self.cap_region_window:
-            self.cap_region_window.update()
-
-    def on_diff_width_changed(self):
-        """Diff Width 값이 변경될 때 캡처 영역 창 업데이트"""
-        if self.cap_region_window:
-            self.cap_region_window.update()
-
     def setup_ui(self):
         basic_layout = QVBoxLayout(self)
 
         # 투명도 슬라이더
         slider_layout = QHBoxLayout()
         self.opacity_label = QLabel('투명도: 50%', self)
+        self.opacity_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.opacity_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.opacity_slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.opacity_slider.setRange(0, 70)
         self.opacity_slider.setValue(50)
         self.opacity_slider.valueChanged.connect(self._on_opacity_changed)
@@ -195,29 +217,63 @@ class BasicTab(QWidget):
 
         # 캡처 영역 가이드 토글 버튼
         self.toggle_modaless_button = QPushButton('캡쳐영역 가이드', self)
+        self.toggle_modaless_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.toggle_modaless_button.clicked.connect(self.toggle_cap_region_window)
         basic_layout.addWidget(self.toggle_modaless_button)
         
         # 캡처 영역 재설정 버튼
         clear_button = QPushButton('캡쳐영역 재설정', self)
+        clear_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         clear_button.clicked.connect(self.clear_rectangles)
         basic_layout.addWidget(clear_button)        
         basic_layout.addSpacing(15)
 
         # 캡쳐영역 설정값 그룹
         cap_region_group = QGroupBox('캡쳐영역 설정값', self)
+        cap_region_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         cap_region_layout = QVBoxLayout()
         
-        # margin LineEdit
-        margin_layout = QHBoxLayout()
-        margin_label = QLabel('Margin', self)
-        margin_label.setToolTip('캡쳐 영역의 여백 크기(px)')
-        self.margin_edit = QLineEdit(self)
-        self.margin_edit.setPlaceholderText('0')
-        self.margin_edit.textChanged.connect(self.on_margin_changed)
-        margin_layout.addWidget(margin_label)
-        margin_layout.addWidget(self.margin_edit)
-        cap_region_layout.addLayout(margin_layout)
+        # margins Grid Layout
+        margins_layout = QGridLayout()
+        margins_layout.setSpacing(10)
+        
+        # Top margin
+        margin_top_label = QLabel('상단 여백', self)
+        margin_top_label.setToolTip('캡쳐 영역의 상단 여백 크기(px)')
+        self.margin_top_edit = QLineEdit(self)
+        self.margin_top_edit.setPlaceholderText('0')
+        self.margin_top_edit.textChanged.connect(self.on_margin_changed)
+        margins_layout.addWidget(margin_top_label, 0, 0)
+        margins_layout.addWidget(self.margin_top_edit, 0, 1)
+        
+        # Bottom margin
+        margin_bottom_label = QLabel('하단 여백', self)
+        margin_bottom_label.setToolTip('캡쳐 영역의 하단 여백 크기(px)')
+        self.margin_bottom_edit = QLineEdit(self)
+        self.margin_bottom_edit.setPlaceholderText('0')
+        self.margin_bottom_edit.textChanged.connect(self.on_margin_changed)
+        margins_layout.addWidget(margin_bottom_label, 1, 0)
+        margins_layout.addWidget(self.margin_bottom_edit, 1, 1)
+        
+        # Left margin
+        margin_left_label = QLabel('좌측 여백', self)
+        margin_left_label.setToolTip('캡쳐 영역의 좌측 여백 크기(px)')
+        self.margin_left_edit = QLineEdit(self)
+        self.margin_left_edit.setPlaceholderText('0')
+        self.margin_left_edit.textChanged.connect(self.on_margin_changed)
+        margins_layout.addWidget(margin_left_label, 0, 2)
+        margins_layout.addWidget(self.margin_left_edit, 0, 3)
+        
+        # Right margin
+        margin_right_label = QLabel('우측 여백', self)
+        margin_right_label.setToolTip('캡쳐 영역의 우측 여백 크기(px)')
+        self.margin_right_edit = QLineEdit(self)
+        self.margin_right_edit.setPlaceholderText('0')
+        self.margin_right_edit.textChanged.connect(self.on_margin_changed)
+        margins_layout.addWidget(margin_right_label, 1, 2)
+        margins_layout.addWidget(self.margin_right_edit, 1, 3)
+        
+        cap_region_layout.addLayout(margins_layout)
         
         # diff_width LineEdit
         diff_width_layout = QHBoxLayout()
@@ -225,7 +281,7 @@ class BasicTab(QWidget):
         diff_width_label.setToolTip('좌우 캡쳐 영역의 차이값(px)')
         self.diff_width_edit = QLineEdit(self)
         self.diff_width_edit.setPlaceholderText('0')
-        self.diff_width_edit.textChanged.connect(self.on_diff_width_changed)
+        self.diff_width_edit.textChanged.connect(self.on_margin_changed)
         diff_width_layout.addWidget(diff_width_label)
         diff_width_layout.addWidget(self.diff_width_edit)
         cap_region_layout.addLayout(diff_width_layout)
@@ -236,6 +292,7 @@ class BasicTab(QWidget):
 
         # 기타 설정값 그룹
         param_group = QGroupBox('기타 설정값', self)
+        param_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         param_layout = QVBoxLayout()
 
         # file_name LineEdit
@@ -281,13 +338,15 @@ class BasicTab(QWidget):
 
         # 시작/중지 버튼
         self.btn_start = QPushButton("시작", self)
+        self.btn_start.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btn_start.clicked.connect(self.on_start_button_clicked)
         basic_layout.addWidget(self.btn_start)
 
         # 로그 표시를 위한 QTextEdit
         self.log_text_edit = QTextEdit(self)
+        self.log_text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.log_text_edit.setReadOnly(True)
-        self.log_text_edit.setFixedHeight(200)
+        self.log_text_edit.setMinimumHeight(200)
         basic_layout.addWidget(self.log_text_edit)
 
 # end of file

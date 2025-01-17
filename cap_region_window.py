@@ -31,28 +31,28 @@ class CapRegionWindow(QWidget):
         self.loadSettings()
         
     def paintEvent(self, event):
+        """창에 사각형을 그리는 이벤트"""
         painter = QPainter(self)
-
-        if self.cap_region_rect is not None:  # None 체크 추가
-            # 기존 흰색 사각형 그리기
+        
+        # 투명한 배경
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 1))
+        
+        if self.cap_region_rect is not None:
+            # 흰색 사각형 그리기
             painter.setPen(QPen(QColor(255, 255, 255), 2))
             painter.drawRect(self.cap_region_rect)
-            
-            # Margin이 설정된 경우 녹색 사각형 그리기
-            if self.main_window and self.main_window.basic_tab.margin_edit.text():
-                try:
-                    margin = int(self.main_window.basic_tab.margin_edit.text())
-                    if margin > 0:
-                        painter.setPen(QPen(QColor(0, 255, 0), 1))
-                        margin_rect = QRect(
-                            self.cap_region_rect.x() - margin,
-                            self.cap_region_rect.y() - margin,
-                            self.cap_region_rect.width() + (margin * 2),
-                            self.cap_region_rect.height() + (margin * 2)
-                        )
-                        painter.drawRect(margin_rect)
-                except ValueError:
-                    pass  # 숫자가 아닌 값이 입력된 경우 무시
+
+            # 녹색 margin 사각형 그리기
+            margins = self.main_window.basic_tab.getMargins()
+            if any(margin > 0 for margin in margins.values()):
+                painter.setPen(QPen(QColor(0, 255, 0), 1))
+                margin_rect = QRect(
+                    self.cap_region_rect.x() - margins["left"],
+                    self.cap_region_rect.y() - margins["top"],
+                    self.cap_region_rect.width() + margins["right"] + margins["left"],
+                    self.cap_region_rect.height() + margins["top"] + margins["bottom"]
+                )
+                painter.drawRect(margin_rect)
             
             # Diff Width가 설정된 경우 수직 점선 그리기
             if self.main_window and self.main_window.basic_tab.diff_width_edit.text():

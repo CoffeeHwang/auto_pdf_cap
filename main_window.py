@@ -81,6 +81,34 @@ class MainWindow(QMainWindow):
         settings_action.triggered.connect(self.show_settings)
         file_menu.addAction(settings_action)
         
+        # 보기 메뉴
+        view_menu = menubar.addMenu('보기')
+        
+        # 항상위 토글 액션
+        self.always_on_top_action = QAction('항상위', self, checkable=True)
+        self.always_on_top_action.setStatusTip('창을 항상 위에 표시')
+        self.always_on_top_action.triggered.connect(self.toggle_always_on_top)
+        view_menu.addAction(self.always_on_top_action)
+        
+        # 저장된 항상위 설정 불러오기
+        is_always_on_top = self.settings.value('MainWindow/always_on_top', 'false').lower() == 'true'
+        self.always_on_top_action.setChecked(is_always_on_top)
+        self.toggle_always_on_top(is_always_on_top)
+
+    def toggle_always_on_top(self, checked: bool):
+        """항상위 설정을 토글"""
+        flags = self.windowFlags()
+        if checked:
+            self.setWindowFlags(flags | Qt.WindowType.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(flags & ~Qt.WindowType.WindowStaysOnTopHint)
+            
+        # 창 숨김/표시로 설정 적용
+        self.show()
+        
+        # 설정 저장
+        self.settings.setValue('MainWindow/always_on_top', str(checked).lower())
+
     def show_settings(self):
         """환경설정 창을 표시"""
         dialog = SettingsDialog(self)

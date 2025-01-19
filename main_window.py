@@ -115,8 +115,16 @@ class MainWindow(QMainWindow):
 
     def setup_shortcuts(self):
         """단축키 설정"""
-        # 윈도우 닫기 단축키
-        close_shortcut = QShortcut(QKeySequence.StandardKey.Close, self)  # macOS에서는 CMD+W로 동작
+        # 윈도우 닫기 단축키 (CMD+W)
+        close_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)  # macOS에서는 Ctrl이 CMD로 매핑됨
         close_shortcut.activated.connect(self.close)
+
+    def keyPressEvent(self, event):
+        """키 입력 이벤트를 처리합니다."""
+        # CMD+W (macOS) 처리
+        if event.key() == Qt.Key_W and event.modifiers() & Qt.ControlModifier:
+            self.close()
+        else:
+            super().keyPressEvent(event)
 
 # end of file

@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import (QMainWindow, QPushButton, QWidget, 
-                           QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget,
-                           QMenuBar, QMenu, QAction, QShortcut)
-from PyQt5.QtCore import Qt, QRect, QPoint, QThread
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QTabWidget,
+                          QMenuBar, QMenu, QAction, QShortcut, QPushButton, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit)
+from PyQt5.QtCore import Qt, QRect, QPoint, QSettings
 from PyQt5.QtGui import QKeySequence
 from tab_basic import BasicTab
 from tab_ocr import OcrTab

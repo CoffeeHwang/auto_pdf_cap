@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtSignal
+from typing import Callable
 from auto_pdf_capture import auto_pdf_capture
 
 
@@ -6,7 +7,10 @@ class WorkerCapture(QObject):
     finished = pyqtSignal()
     log_message_signal  = pyqtSignal(str)  # 로그 메시지를 전달할 신호 추가
 
-    def __init__(self, main_window, file_name, page_loop, x1, y1, x2, y2, margin, diff_width, automation_delay, left_first=True):
+    def __init__(self, main_window, file_name: str, page_loop: int,
+                 x1: int, y1: int, x2: int, y2: int,
+                 margin: dict[str, int], diff_width: int,
+                 automation_delay: float, left_first: bool = True):
         super().__init__()
         self.main_window = main_window
         self.file_name = file_name
@@ -20,9 +24,6 @@ class WorkerCapture(QObject):
         self.automation_delay = automation_delay
         self.left_first = left_first
         self._is_running = False
-
-        # 로그 메시지 신호를 메인 윈도우의 log_message 슬롯에 연결
-        self.log_message_signal.connect(self.main_window.log_message)
 
     def run(self):
         self._is_running = True

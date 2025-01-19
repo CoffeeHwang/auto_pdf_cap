@@ -93,7 +93,7 @@ def _create_pdf(*, output_dir: str, file_name: str, show_log_fn: Callable[[str],
 
 def auto_pdf_capture(file_name: str, page_loop: int,
                      x1: int, y1: int, x2: int, y2: int,
-                     margin: int = 0, diff_width: int = 0,
+                     margin: dict, diff_width: int = 0,
                      res: int = 1, automation_delay: float = 0.2,
                      left_first: bool = True,
                      log_message_signal: pyqtSignal | pyqtBoundSignal | None = None,
@@ -129,10 +129,11 @@ def auto_pdf_capture(file_name: str, page_loop: int,
             log_message_signal.emit(log_message) # type: ignore
         print(log_message)
 
-    x1 -= margin
-    y1 -= margin
-    x2 += margin
-    y2 += margin
+    # 마진 적용
+    x1 -= margin["left"]
+    y1 -= margin["top"]
+    x2 += margin["right"]
+    y2 += margin["bottom"]
 
     x = x1  # 캡쳐 시작좌표 x
     y = y1  # 캡쳐 시작좌표 y

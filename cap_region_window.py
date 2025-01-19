@@ -8,6 +8,9 @@ from supa_common import log
 
 
 class CapRegionWindow(QWidget):
+    """캡쳐 영역을 표시하는 창"""
+    window_closed = pyqtSignal()  # 창이 닫힐 때 발생하는 시그널
+    
     def __init__(self, parent=None):
         super().__init__(parent, Qt.Window | Qt.WindowStaysOnTopHint) # type: ignore
         self.begin = None
@@ -21,7 +24,7 @@ class CapRegionWindow(QWidget):
         self.drag_start_pos = None
         self.rect_start = None
         self.corner_size = 10
-        self.main_window = parent
+        self.main_window: 'MainWindow' = parent
         self.min_size = 100
         self.initUI()
         
@@ -79,6 +82,8 @@ class CapRegionWindow(QWidget):
             painter.setPen(QPen(QColor(255, 255, 255), 2))
             rect = QRect(self.begin, self.end)
             painter.drawRect(rect)
+
+        log(self, f'rect - x:{self.cap_region_rect.x()} y:{self.cap_region_rect.y()} w:{self.cap_region_rect.width()} h:{self.cap_region_rect.height()} - x:{self.cap_region_rect.x()}')
     
     def get_edge_or_corner_at(self, pos):
         if self.cap_region_rect is None:
@@ -293,6 +298,7 @@ class CapRegionWindow(QWidget):
 
     def closeEvent(self, event):
         """모달리스 창이 닫힐 때 설정 저장"""
+        self.window_closed.emit()
         self.save_rectangle_settings()
         if isinstance(self.parent(), self.main_window.__class__):
             self.parent().saveSettings() # type: ignore
@@ -330,6 +336,7 @@ class CapRegionWindow(QWidget):
         """키 입력 이벤트를 처리합니다."""
         if event.key() == Qt.Key_Escape:
             self.hide()
+            self.window_closed.emit()
         else:
             super().keyPressEvent(event)
 
@@ -350,5 +357,23 @@ class CapRegionWindow(QWidget):
         if x != 0 and y != 0 and width != 0 and height != 0:
             self.cap_region_rect = QRect(x, y, width, height)
             self.update()
+
+    def get_absolute_rect(self) -> QRect | None:
+        """캡처 영역의 절대 좌표를 반환합니다."""
+        if self.cap_region_rect is None:
+            return None
+            
+        # 윈도우의 절대 위치를 가져옵니다
+        window_pos = self.mapToGlobal(QPoint(0, 0))
+        
+        # 상대 좌표에 윈도우 위치를 더해 절대 좌표로 변환합니다
+        absolute_rect = QRect(
+            window_pos.x() + self.cap_region_rect.x(),
+            window_pos.y() + self.cap_region_rect.y(),
+            self.cap_region_rect.width(),
+            self.cap_region_rect.height()
+        )
+        
+        return absolute_rect
 
 # end of file

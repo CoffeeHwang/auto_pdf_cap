@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QSlider, 
-                           QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit,
+from PyQt6.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QSlider, 
+                           QLabel, QHBoxLayout, QLineEdit, QGroupBox, QTextEdit,
                            QCheckBox, QGridLayout, QSizePolicy)
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QThread
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread
 from supa_settings import SupaSettings
 from cap_region_window import CapRegionWindow
 from worker_cap import WorkerCapture
@@ -276,9 +276,9 @@ class BasicTab(QWidget):
         # 투명도 슬라이더
         slider_layout = QHBoxLayout()
         self.opacity_label = QLabel('투명도: 50%', self)
-        self.opacity_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.opacity_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.opacity_slider = QSlider(Qt.Orientation.Horizontal, self)
-        self.opacity_slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.opacity_slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.opacity_slider.setRange(0, 70)
         self.opacity_slider.setValue(50)
         self.opacity_slider.valueChanged.connect(self._on_opacity_changed)
@@ -289,20 +289,20 @@ class BasicTab(QWidget):
 
         # 캡처 영역 가이드 토글 버튼
         self.toggle_modaless_button = QPushButton('캡쳐영역 보이기', self)
-        self.toggle_modaless_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.toggle_modaless_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.toggle_modaless_button.clicked.connect(self.toggle_cap_region_window)
         basic_layout.addWidget(self.toggle_modaless_button)
         
         # 캡처 영역 재설정 버튼
         clear_button = QPushButton('캡쳐영역 재설정', self)
-        clear_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        clear_button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         clear_button.clicked.connect(self.clear_rectangles)
         basic_layout.addWidget(clear_button)        
         basic_layout.addSpacing(15)
 
         # 캡쳐영역 설정값 그룹
         cap_region_group = QGroupBox('캡쳐영역 설정값', self)
-        cap_region_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        cap_region_group.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         cap_region_layout = QVBoxLayout()
         
         # margins Grid Layout
@@ -364,7 +364,7 @@ class BasicTab(QWidget):
 
         # 기타 설정값 그룹
         param_group = QGroupBox('기타 설정값', self)
-        param_group.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        param_group.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         param_layout = QVBoxLayout()
 
         # file_name LineEdit
@@ -410,13 +410,13 @@ class BasicTab(QWidget):
 
         # 시작/중지 버튼
         self.btn_start = QPushButton("시작", self)
-        self.btn_start.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.btn_start.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.btn_start.clicked.connect(self.on_start_button_clicked)
         basic_layout.addWidget(self.btn_start)
 
         # 로그 표시를 위한 QTextEdit
         self.log_text_edit = QTextEdit(self)
-        self.log_text_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.log_text_edit.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.log_text_edit.setReadOnly(True)
         self.log_text_edit.setMinimumHeight(200)
         basic_layout.addWidget(self.log_text_edit)

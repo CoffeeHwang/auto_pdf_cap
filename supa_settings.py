@@ -3,8 +3,8 @@ SupaSettings 모듈입니다.
 QSettings를 상속받아 간단한 getter/setter를 제공합니다.
 """
 
-from PyQt5.QtCore import QSettings
-from typing import Any, Optional
+from PyQt6.QtCore import QSettings
+from typing import Any
 
 
 class SupaSettings(QSettings):

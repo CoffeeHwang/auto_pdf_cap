@@ -19,7 +19,7 @@ import pyautogui
 import os
 from PIL import Image
 import time
-from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
+from PyQt6.QtCore import pyqtSignal, pyqtBoundSignal
 import subprocess
 import sys
 from supa_common import *

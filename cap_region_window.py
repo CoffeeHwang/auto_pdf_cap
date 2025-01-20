@@ -1,8 +1,6 @@
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QWidget, 
-                           QVBoxLayout, QSlider, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit, QTabWidget,
-                           QDesktopWidget)
-from PyQt5.QtCore import Qt, QRect, QPoint, QTimer, QObject, pyqtSignal, QThread
-from PyQt5.QtGui import QPainter, QPen, QColor, QCursor
+from PyQt6.QtWidgets import (QApplication, QWidget)
+from PyQt6.QtCore import Qt, QRect, QPoint, pyqtSignal
+from PyQt6.QtGui import QPainter, QPen, QColor
 from supa_settings import SupaSettings
 from supa_common import log
 
@@ -12,7 +10,7 @@ class CapRegionWindow(QWidget):
     window_closed = pyqtSignal()  # 창이 닫힐 때 발생하는 시그널
     
     def __init__(self, parent=None):
-        super().__init__(parent, Qt.Window | Qt.WindowStaysOnTopHint) # type: ignore
+        super().__init__(parent, Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint) 
         self.begin = None
         self.end = None
         self.is_drawing = False
@@ -168,7 +166,7 @@ class CapRegionWindow(QWidget):
             self.update()
             
         # 마우스가 움직이는 중에 사각형을 이동시키고 있다면
-        elif self.is_moving and self.cap_region_rect and self.rect_start: # type: ignore
+        elif self.is_moving and self.cap_region_rect and self.rect_start: 
             delta = event.pos() - self.drag_start_pos
             self.cap_region_rect = QRect(self.rect_start)
             self.cap_region_rect.translate(delta)
@@ -179,7 +177,7 @@ class CapRegionWindow(QWidget):
             self.update()
             
         # 마우스가 움직이는 중에 사각형을 크기 조정하고 있다면
-        elif self.is_resizing and self.cap_region_rect and self.rect_start: # type: ignore
+        elif self.is_resizing and self.cap_region_rect and self.rect_start: 
             new_rect = QRect(self.cap_region_rect)
             
             # 크기 조정하는 경우, 크기 조정 방향에 따라 적절한 처리를 수행
@@ -232,7 +230,7 @@ class CapRegionWindow(QWidget):
             position = self.get_edge_or_corner_at(event.pos())
             if position:
                 self.setCursor(self.get_cursor_for_position(position))
-            elif self.cap_region_rect and self.cap_region_rect.contains(event.pos()): # type: ignore
+            elif self.cap_region_rect and self.cap_region_rect.contains(event.pos()): 
                 self.setCursor(Qt.CursorShape.SizeAllCursor)
             else:
                 self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -240,7 +238,7 @@ class CapRegionWindow(QWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             position = self.get_edge_or_corner_at(event.pos())
-            if position and self.cap_region_rect: # type: ignore
+            if position and self.cap_region_rect: 
                 self.is_resizing = True
                 self.resize_position = position
                 self.drag_start_pos = event.pos()
@@ -249,7 +247,7 @@ class CapRegionWindow(QWidget):
                 self.begin = event.pos()
                 self.end = self.begin
                 self.is_drawing = True
-            elif self.cap_region_rect and self.cap_region_rect.contains(event.pos()): # type: ignore
+            elif self.cap_region_rect and self.cap_region_rect.contains(event.pos()): 
                 self.is_moving = True
                 self.drag_start_pos = event.pos()
                 self.rect_start = QRect(self.cap_region_rect)  # QPoint 대신 QRect로 저장
@@ -301,23 +299,23 @@ class CapRegionWindow(QWidget):
         self.window_closed.emit()
         self.save_rectangle_settings()
         if isinstance(self.parent(), self.main_window.__class__):
-            self.parent().saveSettings() # type: ignore
+            self.parent().saveSettings() 
         event.accept()
 
     def moveToCenter(self) -> None:
         """창이 화면 밖에 있는지 확인하고 필요한 경우 화면 중앙으로 이동시킵니다."""
         # 현재 화면의 geometry를 가져옵니다
-        desktop = QDesktopWidget()
-        screen = desktop.screenGeometry()
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.geometry()
         
         # 창이 화면 밖에 있는지 확인합니다
         if (self.x() < 0 or self.y() < 0 or 
-            self.x() + self.width() > screen.width() or 
-            self.y() + self.height() > screen.height()):
+            self.x() + self.width() > screen_geometry.width() or 
+            self.y() + self.height() > screen_geometry.height()):
             
             # 화면 중앙 좌표를 계산합니다
-            center_x = (screen.width() - self.width()) // 2
-            center_y = (screen.height() - self.height()) // 2
+            center_x = (screen_geometry.width() - self.width()) // 2
+            center_y = (screen_geometry.height() - self.height()) // 2
             
             # 창을 화면 중앙으로 이동시킵니다
             self.move(center_x, center_y)
@@ -334,7 +332,7 @@ class CapRegionWindow(QWidget):
 
     def keyPressEvent(self, event):
         """키 입력 이벤트를 처리합니다."""
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.hide()
             self.window_closed.emit()
         else:

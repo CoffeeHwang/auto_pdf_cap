@@ -1,10 +1,8 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
-                           QListWidgetItem, QDialog, QDesktopWidget, QPushButton, QMessageBox,
-                           QTextEdit)
-from PyQt5.QtCore import Qt, QPoint, QThread, pyqtSignal
-from PyQt5.QtGui import QPixmap
-import os
-from outline_ocr import run_ocr
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QLabel, 
+                           QListWidgetItem, QDialog, QPushButton, QMessageBox,
+                           QTextEdit, QAbstractItemView)
+from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtGui import QPixmap, QScreen
 from supa_settings import SupaSettings
 from worker_ocr import WorkerOcr
 
@@ -57,7 +55,7 @@ class ImagePreviewDialog(QDialog):
         
     def get_center_position(self):
         # 화면의 중앙 위치 계산
-        screen = QDesktopWidget().screenGeometry()
+        screen = QScreen.availableGeometry(QApplication.screens()[0])
         size = self.geometry()
         return (screen.width() - size.width()) // 2, (screen.height() - size.height()) // 2
         
@@ -82,7 +80,8 @@ class ImageListWidget(QListWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
-        self.setSelectionMode(QListWidget.ExtendedSelection)
+        self.setDragEnabled(True)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.preview_dialog = None
         
         # 아이템 선택 변경 시그널 연결
@@ -96,14 +95,14 @@ class ImageListWidget(QListWidget):
 
     def dragMoveEvent(self, event):
         if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
+            event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event):
         if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
+            event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
             
             for url in event.mimeData().urls():
@@ -111,7 +110,7 @@ class ImageListWidget(QListWidget):
                 if file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
                     # 리스트 아이템 생성
                     item = QListWidgetItem()
-                    item.setData(Qt.UserRole, file_path)  # 전체 파일 경로는 데이터로 저장
+                    item.setData(Qt.ItemDataRole.UserRole, file_path)  # 전체 파일 경로는 데이터로 저장
                     item.setText(file_path.split('/')[-1])  # 보여지는 부분에는 파일명만 표시
                     
                     self.addItem(item)
@@ -128,7 +127,7 @@ class ImageListWidget(QListWidget):
         selected_items = self.selectedItems()
         if selected_items:
             # 선택된 첫 번째 아이템의 이미지 경로 가져오기
-            image_path = selected_items[0].data(Qt.UserRole)
+            image_path = selected_items[0].data(Qt.ItemDataRole.UserRole)
             
             # 새 미리보기 창 생성 및 표시
             self.preview_dialog = ImagePreviewDialog(image_path, self)
@@ -158,7 +157,7 @@ class ImageListWidget(QListWidget):
                 # 미리보기 창이 열려있고, 현재 삭제하려는 아이템의 이미지를 보여주고 있다면 닫기
                 if (self.preview_dialog and 
                     self.preview_dialog.isVisible() and 
-                    item.data(Qt.UserRole) == self.selectedItems()[0].data(Qt.UserRole)):
+                    item.data(Qt.ItemDataRole.UserRole) == self.selectedItems()[0].data(Qt.ItemDataRole.UserRole)):
                     self.preview_dialog.close()
                     self.preview_dialog = None
                 
@@ -226,7 +225,7 @@ class OcrTab(QWidget):
         # 파일 경로 리스트 생성
         file_paths = []
         for item in image_files:
-            file_path = item.data(Qt.UserRole)  # 아이템에 저장된 파일 경로
+            file_path = item.data(Qt.ItemDataRole.UserRole)  # 아이템에 저장된 파일 경로
             file_paths.append(file_path)
 
         secret_key = self.settings.value("ocr/secret_key", "")

@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtWidgets import QLabel
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 import os
 
 class DropAreaWidget(QLabel):
@@ -10,7 +10,7 @@ class DropAreaWidget(QLabel):
         self.file_path = ""
         
         # 스타일 설정
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # 드래그 앤 드롭 활성화
         self.setAcceptDrops(True)
@@ -37,6 +37,7 @@ class DropAreaWidget(QLabel):
         file_path = event.mimeData().urls()[0].toLocalFile()
         self.file_path = file_path
         self.update_text()
+        event.setDropAction(Qt.DropAction.CopyAction)
         event.acceptProposedAction()
 
     def set_file_path(self, file_path: str) -> None:

@@ -1,13 +1,11 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QTabWidget,
-                          QMenuBar, QMenu, QAction, QShortcut, QPushButton, QLabel, QHBoxLayout, QLineEdit, QSpinBox, QGroupBox, QTextEdit)
-from PyQt5.QtCore import Qt, QRect, QPoint, QSettings
-from PyQt5.QtGui import QKeySequence
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QTabWidget)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeySequence, QAction, QShortcut
 from tab_basic import BasicTab
 from tab_ocr import OcrTab
 from tab_gen_outline import GenOutlineTab
 from settings_dialog import SettingsDialog
 from supa_settings import SupaSettings
-import sys
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -111,7 +109,7 @@ class MainWindow(QMainWindow):
     def show_settings(self):
         """환경설정 창을 표시"""
         dialog = SettingsDialog(self)
-        dialog.exec_()
+        dialog.exec()  
 
     def setup_shortcuts(self):
         """단축키 설정"""
@@ -122,9 +120,7 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event):
         """키 입력 이벤트를 처리합니다."""
         # CMD+W (macOS) 처리
-        if event.key() == Qt.Key_W and event.modifiers() & Qt.ControlModifier:
+        if event.key() == Qt.Key.Key_W and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             self.close()
         else:
             super().keyPressEvent(event)
-
-# end of file

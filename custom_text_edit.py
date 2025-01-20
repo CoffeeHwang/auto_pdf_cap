@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QTextEdit
-from PyQt5.QtCore import Qt, QMimeData, QTimer
-from PyQt5.QtGui import QTextCursor, QDragEnterEvent, QDropEvent
+from PyQt6.QtWidgets import QTextEdit
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QKeyEvent
 import os
 
 class CustomTextEdit(QTextEdit):
@@ -9,7 +9,7 @@ class CustomTextEdit(QTextEdit):
         self.parent = parent
         self.setup_editor()
         
-        # 자동저장 타이머 설정
+        # 자동 저장 타이머 설정
         self._save_timer = QTimer(self)
         self._save_timer.setInterval(2000)  # 2초 딜레이
         self._save_timer.setSingleShot(True)  # 한 번만 실행
@@ -19,30 +19,30 @@ class CustomTextEdit(QTextEdit):
         
     def setup_editor(self):
         """에디터 설정"""
-        # 탭 크기 설정
-        self.setTabStopWidth(self.fontMetrics().width(' ') * 4)
+        # 탭 간격 설정 (스페이스 4개 크기)
+        self.setTabStopDistance(self.fontMetrics().horizontalAdvance(' ') * 4)
         # 드래그 앤 드롭 활성화
         self.setAcceptDrops(True)
         # 읽기 전용 해제
         self.setReadOnly(False)
         
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.accept()
         else:
             event.ignore()
 
-    def dragMoveEvent(self, event):
+    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
+            event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
         else:
             event.ignore()            
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: QDropEvent) -> None:
         """드롭 이벤트"""
         if event.mimeData().hasUrls():
-            event.setDropAction(Qt.CopyAction)
+            event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
                 
             file_path = event.mimeData().urls()[0].toLocalFile()
@@ -113,17 +113,17 @@ class CustomTextEdit(QTextEdit):
                 self.parent.status_label.setText(f"저장 실패: {str(e)}")
         return False
             
-    def keyPressEvent(self, event):
-        """키 입력 이벤트 처리"""            
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """키 입력 이벤트를 처리합니다."""
         cursor = self.textCursor()
         
         # Tab 키 처리
-        if event.key() == Qt.Key_Tab:
+        if event.key() == Qt.Key.Key_Tab:
             cursor.insertText("    ")  # 4칸 스페이스
             return
             
         # Enter 키 처리
-        if event.key() == Qt.Key_Return:
+        if event.key() == Qt.Key.Key_Return:
             # 현재 줄의 들여쓰기를 유지
             block = cursor.block()
             text = block.text()
@@ -136,6 +136,11 @@ class CustomTextEdit(QTextEdit):
             
             # Enter와 들여쓰기 삽입
             cursor.insertText("\n" + indentation)
+            return
+            
+        # CMD+A (전체 선택)
+        if event.key() == Qt.Key.Key_A and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            self.selectAll()
             return
             
         super().keyPressEvent(event)

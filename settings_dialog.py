@@ -1,7 +1,6 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
                            QLabel, QLineEdit, QGroupBox, QPushButton,
                            QFileDialog)
-from PyQt5.QtCore import QSettings
 import os
 from supa_common import log
 from supa_settings import SupaSettings
@@ -98,3 +97,5 @@ class SettingsDialog(QDialog):
         
         if file_path:
             self.editor_path_edit.setText(file_path)
+
+# end of file

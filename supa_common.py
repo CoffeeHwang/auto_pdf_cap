@@ -39,3 +39,4 @@ def log_end(obj):
         print('<LOG>', getTimeStrSimple(), className, '|', cur_methodName, '' if clog is None else (': ' + str(clog)))
     pass
 
+# end of file

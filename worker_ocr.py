@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from outline_ocr import run_ocr
 
 
@@ -27,3 +27,5 @@ class WorkerOcr(QThread):
             self.finished.emit(ocr_lines)
         except Exception as e:
             self.error.emit(str(e))
+
+# end of file

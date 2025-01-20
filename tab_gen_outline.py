@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
-                           QPushButton, QLabel, QGroupBox, QFileDialog,
-                           QMessageBox, QDialog, QTextEdit, QStyle)
-from PyQt5.QtCore import Qt, QFileSystemWatcher
-from PyQt5.QtGui import QFont, QFontDatabase, QIcon
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, 
+                           QPushButton, QLabel, QGroupBox,
+                           QMessageBox, QDialog, QStyle)
+from PyQt6.QtCore import Qt, QFileSystemWatcher
+from PyQt6.QtGui import QFont, QFontDatabase
 import os
 import sys
 import subprocess
@@ -61,7 +61,7 @@ class GenOutlineTab(QWidget):
         
         # 파일 위치 열기 버튼
         self.btn_open_location = QPushButton()
-        self.btn_open_location.setIcon(self.style().standardIcon(QStyle.SP_DialogOpenButton))  # 폴더 열기 아이콘
+        self.btn_open_location.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DialogOpenButton))  # 폴더 열기 아이콘
         self.btn_open_location.setToolTip("파일 위치 열기")
         self.btn_open_location.setFixedSize(24, 24)  # 버튼 크기 고정
         self.btn_open_location.setStyleSheet("""
@@ -151,6 +151,7 @@ class GenOutlineTab(QWidget):
         
         # 상태 표시 레이블
         self.status_label = QLabel("")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
         
         layout.addStretch()
@@ -412,3 +413,5 @@ class GenOutlineTab(QWidget):
             subprocess.run(["open", "-R", self.current_file_path])
         except Exception as e:
             QMessageBox.critical(self, "오류", f"파일 위치를 열 수 없습니다: {str(e)}")
+
+# end of file
